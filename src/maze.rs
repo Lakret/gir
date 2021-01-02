@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 /// (row, col), 0-indexed
-type Cell = (u32, u32);
+pub type Cell = (u32, u32);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Wall {
