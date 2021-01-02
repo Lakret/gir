@@ -1,9 +1,7 @@
 use std::error::Error;
 
-use gir::maze::Maze;
-use gir::maze::Wall::*;
-
 use gir::draw::draw;
+use gir::maze::Maze;
 
 /* TODO:
 - 1st video (tutorial, showcase, theory + SVG drawing, Rust):
@@ -24,21 +22,10 @@ and easy parallel distributed processing.
 Distributing graphs with Elixir and Rustler. FIXME: what's cool problem that it solves?
 */
 fn main() -> Result<(), Box<dyn Error>> {
-  let mut maze = Maze::new(3, 3);
-  maze
-    .add_cell((0, 0), &[Left, Right])
-    .add_cell((1, 0), &[Left, Bottom])
-    .add_cell((1, 1), &[Bottom, Right])
-    .add_cell((0, 1), &[Top, Left])
-    .add_cell((0, 2), &[Top, Right])
-    .add_cell((1, 2), &[Left, Right])
-    .add_cell((2, 2), &[Bottom, Right])
-    .add_cell((2, 1), &[Top, Bottom])
-    .add_cell((2, 0), &[Top, Bottom]);
-
-  println!("Maze: {:?}", &maze);
-  println!("Maze entrance: {:?}", maze[(0, 0)]);
-  println!("Maze exit: {:?}", maze[(0, 1)]);
+  let maze = Maze::generate(5, 5);
+  // dbg!(&maze);
+  // dbg!(&maze[(0, 0)]);
+  // dbg!(&maze[(0, 1)]);
 
   let document = draw(&maze);
   svg::save("image.svg", &document).map_err(|e| e.into())

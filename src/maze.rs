@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
+use Wall::*;
+
 /// (row, col), 0-indexed
 pub type Cell = (u32, u32);
 
@@ -10,6 +12,17 @@ pub enum Wall {
   Right = 1,
   Bottom = 2,
   Left = 3,
+}
+
+impl Wall {
+  fn opposite(self) -> Wall {
+    match self {
+      Top => Bottom,
+      Bottom => Top,
+      Left => Right,
+      Right => Left,
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +50,40 @@ impl Maze {
   pub fn height(&self) -> u32 {
     self.height
   }
+
+  pub fn neighbour(&self, cell: Cell, wall: Wall) -> Option<Cell> {
+    let (row, col) = cell;
+    match wall {
+      Top => {
+        if row > 0 {
+          Some((row - 1, col))
+        } else {
+          None
+        }
+      }
+      Bottom => {
+        if row < self.height() - 1 {
+          Some((row + 1, col))
+        } else {
+          None
+        }
+      }
+      Left => {
+        if col > 0 {
+          Some((row, col - 1))
+        } else {
+          None
+        }
+      }
+      Right => {
+        if col < self.width() - 1 {
+          Some((row, col + 1))
+        } else {
+          None
+        }
+      }
+    }
+  }
 }
 
 impl std::ops::Index<Cell> for Maze {
@@ -47,5 +94,72 @@ impl std::ops::Index<Cell> for Maze {
       .walls
       .get(&index)
       .expect(&format!("Cell at {:?} doesn't exist.", &index))
+  }
+}
+
+// Start with a grid full of walls.
+// Pick a cell, mark it as part of the maze. Add the walls of the cell to the wall list.
+// While there are walls in the list:
+//     Pick a random wall from the list. If only one of the two cells that the wall divides is visited, then:
+//         Make the wall a passage and mark the unvisited cell as part of the maze.
+//         Add the neighboring walls of the cell to the wall list.
+//     Remove the wall from the list.
+
+impl Maze {
+  pub fn generate(width: u32, height: u32) -> Maze {
+    let mut maze = Maze::new(width, height);
+
+    // surround each cell with walls
+    let all_walls = &[Top, Right, Bottom, Left];
+    for row in 0..height {
+      for col in 0..width {
+        maze.add_cell((row, col), all_walls);
+      }
+    }
+
+    // start with some cell, add it to the cells in maze set,
+    // and add its walls to the walls vector
+    let start_cell = (0, 0);
+    let mut in_maze = HashSet::new();
+    in_maze.insert(start_cell);
+
+    let mut walls = vec![];
+    maze.add_cell_walls_to_vec(&mut walls, start_cell);
+
+    while let Some((cell, wall)) = walls.pop() {
+      if let Some(neighbour) = maze.neighbour(cell, wall) {
+        if !in_maze.contains(&neighbour) {
+          in_maze.insert(neighbour);
+          maze.add_cell_walls_to_vec(&mut walls, neighbour);
+
+          maze.remove_wall(cell, wall);
+        }
+      }
+    }
+
+    maze
+  }
+
+  fn add_cell_walls_to_vec(&self, walls: &mut Vec<(Cell, Wall)>, cell: Cell) {
+    for &wall in &self[cell] {
+      walls.push((cell, wall));
+    }
+  }
+
+  /// Removes `wall` from `cell`, and the corresponding wall
+  /// of the `cell`'s neighbour, if it exists.
+  fn remove_wall(&mut self, cell: Cell, wall: Wall) {
+    match self.walls.get_mut(&cell) {
+      Some(walls) => {
+        walls.remove(&wall);
+
+        if let Some(neighbour) = self.neighbour(cell, wall) {
+          if let Some(neighbour_walls) = self.walls.get_mut(&neighbour) {
+            neighbour_walls.remove(&wall.opposite());
+          }
+        }
+      }
+      None => (),
+    }
   }
 }
