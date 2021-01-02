@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::time::Instant;
 
 use gir::draw::draw;
 use gir::maze::Maze;
@@ -21,12 +22,31 @@ and easy parallel distributed processing.
 - video (live-coding, Elixir/Rust):
 Distributing graphs with Elixir and Rustler. FIXME: what's cool problem that it solves?
 */
-fn main() -> Result<(), Box<dyn Error>> {
-  let maze = Maze::generate(5, 5);
-  // dbg!(&maze);
-  // dbg!(&maze[(0, 0)]);
-  // dbg!(&maze[(0, 1)]);
 
-  let document = draw(&maze);
-  svg::save("image.svg", &document).map_err(|e| e.into())
+/// You can pass arguments like this:
+/// `cargo run --release -- 128 72`
+/// The first argument is width, the second is height.
+fn main() -> Result<(), Box<dyn Error>> {
+  let args = std::env::args()
+    .skip(1)
+    .map(|arg| dbg!(arg))
+    .map(|arg| arg.parse::<u32>())
+    .collect::<Result<Vec<_>, _>>()?;
+
+  if args.len() >= 2 {
+    let (width, height) = (args[0], args[1]);
+
+    let t = Instant::now();
+    let maze = Maze::generate(width, height);
+    println!("Generated {}x{} maze in {:?}.", width, height, t.elapsed());
+
+    let t = Instant::now();
+    let document = draw(&maze);
+    svg::save("image.svg", &document)?;
+    println!("Saved to SVG in {:?}.", t.elapsed());
+
+    Ok(())
+  } else {
+    Err(format!("Invalid args (expected width and height): {:?}", args).into())
+  }
 }
