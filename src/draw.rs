@@ -16,7 +16,6 @@ pub fn draw(maze: &Maze) -> Document {
     }
   }
 
-  // TODO: add cell (row, col) coords for debugging
   let (width, height) = (maze.width() * CELL_SIDE, maze.height() * CELL_SIDE);
   let document = Document::new()
     .set("viewBox", (0, 0, width, height))
