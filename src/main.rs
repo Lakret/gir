@@ -10,7 +10,6 @@ use gir::maze::Maze;
 fn main() -> Result<(), Box<dyn Error>> {
   let args = std::env::args()
     .skip(1)
-    .map(|arg| dbg!(arg))
     .map(|arg| arg.parse::<u32>())
     .collect::<Result<Vec<_>, _>>()?;
 

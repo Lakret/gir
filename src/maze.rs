@@ -8,10 +8,10 @@ pub type Cell = (u32, u32);
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Wall {
-  Top = 0,
-  Right = 1,
-  Bottom = 2,
-  Left = 3,
+  Top,
+  Right,
+  Bottom,
+  Left,
 }
 
 impl Wall {
@@ -111,12 +111,9 @@ impl Maze {
       }
     }
 
-    // start with some cell, add it to the cells in maze set,
-    // and add its walls to the walls vector
     let start_cell = (0, 0);
     let mut in_maze = HashSet::new();
     in_maze.insert(start_cell);
-
     let mut walls = vec![];
     maze.add_cell_walls_to_vec(&mut walls, start_cell);
 
