@@ -32,7 +32,7 @@ fn make_line(from: (u32, u32), relative_to: (u32, u32)) -> Path {
   Path::new()
     .set("fill", "none")
     .set("stroke", "black")
-    .set("storke-width", STROKE_WIDTH)
+    .set("stroke-width", STROKE_WIDTH)
     .set("stroke-linejoin", "square")
     .set("stroke-linecap", "square")
     .set("d", data)
