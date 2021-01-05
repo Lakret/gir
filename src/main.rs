@@ -4,6 +4,14 @@ use std::time::Instant;
 use gir::draw::draw;
 use gir::maze::Maze;
 
+// TODO: remove after recording screen
+// let mut maze = Maze::new(2, 2);
+// maze
+//   .add_cell((0, 0), &[gir::maze::Wall::Left, gir::maze::Wall::Right])
+//   .add_cell((1, 0), &[gir::maze::Wall::Left, gir::maze::Wall::Bottom])
+//   .add_cell((1, 1), &[gir::maze::Wall::Bottom, gir::maze::Wall::Right])
+//   .add_cell((0, 1), &[gir::maze::Wall::Top, gir::maze::Wall::Left]);
+
 /// You can pass arguments like this:
 /// `cargo run --release -- 128 72`
 /// The first argument is width, the second is height.

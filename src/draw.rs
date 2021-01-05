@@ -6,6 +6,9 @@ use svg::Document;
 use crate::maze::Wall::*;
 use crate::maze::{Cell, Maze, Wall};
 
+const CELL_SIDE: u32 = 10;
+const STROKE_WIDTH: u32 = 2;
+
 pub fn draw(maze: &Maze) -> Document {
   let mut paths = vec![];
 
@@ -22,9 +25,6 @@ pub fn draw(maze: &Maze) -> Document {
     .set("style", "background-color: white;");
   paths.into_iter().fold(document, |document, path| document.add(path))
 }
-
-const CELL_SIDE: u32 = 10;
-const STROKE_WIDTH: u32 = 2;
 
 fn make_line(from: (u32, u32), relative_to: (u32, u32)) -> Path {
   let data = Data::new().move_to(from).line_by(relative_to);
