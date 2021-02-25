@@ -1,0 +1,16 @@
+[package]
+name = "gir"
+version = "0.1.0"
+authors = ["Lakret <rakuretu@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "gir"
+path = "src/mod.rs"
+
+[[bin]]
+name = "gir"
+path = "src/main.rs"
+
+[dependencies]
+svg = "0.8"
