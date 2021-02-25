@@ -1,15 +1,15 @@
 [package]
-name = "gir"
+name = "mazes"
 version = "0.1.0"
 authors = ["Lakret <rakuretu@gmail.com>"]
 edition = "2018"
 
 [lib]
-name = "gir"
+name = "mazes"
 path = "src/mod.rs"
 
 [[bin]]
-name = "gir"
+name = "mazes"
 path = "src/main.rs"
 
 [dependencies]

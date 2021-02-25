@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::time::Instant;
 
-use gir::draw::draw;
-use gir::maze::Maze;
+use mazes::draw::draw;
+use mazes::maze::Maze;
 
 /// You can pass arguments like this:
 /// `cargo run --release -- 128 72`

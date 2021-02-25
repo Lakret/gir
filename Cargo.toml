@@ -1,4 +1,6 @@
 [workspace]
+default-members = ["mazes"]
 members = [
   "mazes",
+  "graphs"
 ]
