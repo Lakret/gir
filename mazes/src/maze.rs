@@ -27,9 +27,9 @@ impl Wall {
 
 #[derive(Debug, Clone)]
 pub struct Maze {
-  width: u32,
-  height: u32,
-  walls: HashMap<Cell, HashSet<Wall>>,
+  pub width: u32,
+  pub height: u32,
+  pub walls: HashMap<Cell, HashSet<Wall>>,
 }
 
 impl Maze {
@@ -98,9 +98,8 @@ impl std::ops::Index<Cell> for Maze {
 }
 
 impl Maze {
-  /// Generates a Maze with `width` and `height`
-  /// using Prim's algorithm.
-  pub fn generate(width: u32, height: u32) -> Maze {
+  /// Generates a fully walled-off maze of `width` and `height`.
+  pub fn fully_walled_maze(width: u32, height: u32) -> Maze {
     let mut maze = Maze::new(width, height);
 
     // surround each cell with walls
@@ -110,6 +109,14 @@ impl Maze {
         maze.add_cell((row, col), all_walls);
       }
     }
+
+    maze
+  }
+
+  /// Generates a Maze with `width` and `height`
+  /// using Prim's algorithm.
+  pub fn generate(width: u32, height: u32) -> Maze {
+    let mut maze = Maze::fully_walled_maze(width, height);
 
     let start_cell = (0, 0);
     let mut in_maze = HashSet::new();

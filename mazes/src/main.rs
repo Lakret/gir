@@ -2,6 +2,7 @@ use std::error::Error;
 use std::time::Instant;
 
 use mazes::draw::draw;
+use mazes::graph_maze;
 use mazes::maze::Maze;
 
 /// You can pass arguments like this:

@@ -13,4 +13,5 @@ name = "mazes"
 path = "src/main.rs"
 
 [dependencies]
+graphs = { path =  "../graphs" }
 svg = "0.8"
