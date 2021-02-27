@@ -16,51 +16,63 @@ use std::collections::HashSet;
 //  Cons: additional memory and slowdown due to hashing. Still have indices in the API, but they are recoverable.
 //  Pros: easiest to implement. Supports deletion. Since indices can be restored, doesn't require much thinking about them.
 
-trait AbstractGraph<V, E> {
+pub trait AbstractGraph<V, E> {
   type VId;
 
   fn new() -> Self;
-  fn push_vertex(self: &mut Self, vertex: V) -> VId;
-  fn push_edge(self: &mut Self, from: VId, to: VId, edge: E);
+  fn push_vertex(self: &mut Self, vertex: V) -> Self::VId;
+  fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E);
 
-  fn adjacent<X: Iterator<Item = (VId, E)>>(self: &mut Self, vid: VId) -> X;
+  fn adjacent(self: &mut Self, vid: Self::VId) -> &dyn Iterator<Item = &(Self::VId, E)>;
 }
 
-// position in Graph.vertices
-#[derive(Debug, Eq, PartialEq, Clone, Copy, From, std::hash::Hash)]
-pub struct VId(usize);
+impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
+  type VId = usize;
 
-// (from, position in Graph.adjacency's vector for from)
-#[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub struct EId(VId, usize);
+  fn new() -> Self {
+    VecGraph::new()
+  }
+
+  fn push_vertex(self: &mut VecGraph<V, E>, vertex: V) -> Self::VId {
+    self.push_vertex(vertex)
+  }
+
+  fn push_edge(self: &mut VecGraph<V, E>, from: Self::VId, to: Self::VId, edge: E) {
+    self.push_edge(from, to, edge);
+  }
+
+  fn adjacent(self: &mut VecGraph<V, E>, vid: Self::VId) -> &dyn Iterator<Item = &(usize, E)> {
+    VecGraph::adjacent(self, &vid)
+  }
+}
 
 // Note: currently this cannot support deletion of vertices,
 // since it will shift their positions in the vector.
 #[derive(Debug, Clone)]
-pub struct Graph<V, E> {
+pub struct VecGraph<V, E> {
   vertices: Vec<V>,
-  adjacency: HashMap<VId, Vec<(VId, E)>>,
+  adjacency: HashMap<usize, Vec<(usize, E)>>,
 }
 
-impl<V, E> Graph<V, E> {
+impl<V, E> VecGraph<V, E> {
   pub fn new() -> Self {
-    Graph {
+    VecGraph {
       vertices: vec![],
       adjacency: HashMap::new(),
     }
   }
 
-  pub fn get_adjacent(self: &Self, vertex: &VId) -> impl Iterator<Item = &(VId, E)> {
+  pub fn adjacent(self: &Self, vertex: &usize) -> impl Iterator<Item = &(usize, E)> {
     self.adjacency.get(vertex).unwrap().iter()
   }
 
-  pub fn push_vertex(self: &mut Self, vertex: V) -> VId {
+  pub fn push_vertex(self: &mut Self, vertex: V) -> usize {
     let last_idx = self.vertices.len();
     self.vertices.push(vertex);
-    VId(last_idx)
+    last_idx
   }
 
-  pub fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
+  pub fn push_edge(self: &mut Self, from: usize, to: usize, edge: E) {
     let adjacent_to_from = self.adjacency.entry(from).or_default();
     adjacent_to_from.push((to, edge));
   }
@@ -72,7 +84,7 @@ mod tests {
 
   #[test]
   fn can_create_a_graph() {
-    let mut g: Graph<&str, String> = Graph::new();
+    let mut g: VecGraph<&str, String> = VecGraph::new();
     let a_id = g.push_vertex("A");
     let b_id = g.push_vertex("B");
     let c_id = g.push_vertex("C");

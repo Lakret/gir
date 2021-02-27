@@ -1,10 +1,10 @@
-use graphs::Graph;
+use graphs::{AbstractGraph, VecGraph};
 
 use crate::maze::{Cell, Maze, Wall};
 
 impl Maze {
-  pub fn as_graph(&self) -> Graph<Cell, Wall> {
-    let mut g: Graph<Cell, Wall> = Graph::new();
+  pub fn as_graph(&self) -> VecGraph<Cell, Wall> {
+    let mut g: VecGraph<Cell, Wall> = VecGraph::new();
 
     for row in 0..self.height {
       for col in 0..self.width {
