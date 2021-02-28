@@ -23,7 +23,7 @@ pub trait AbstractGraph<V, E> {
   fn push_vertex(self: &mut Self, vertex: V) -> Self::VId;
   fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E);
 
-  fn adjacent(self: &mut Self, vid: Self::VId) -> &dyn Iterator<Item = &(Self::VId, E)>;
+  fn adjacent<'a>(self: &mut Self, vid: Self::VId) -> Vec<Self::VId>;
 }
 
 impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
@@ -41,8 +41,8 @@ impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
     self.push_edge(from, to, edge);
   }
 
-  fn adjacent(self: &mut VecGraph<V, E>, vid: Self::VId) -> &dyn Iterator<Item = &(usize, E)> {
-    VecGraph::adjacent(self, &vid)
+  fn adjacent<'a>(self: &'a mut VecGraph<V, E>, vid: Self::VId) -> Vec<Self::VId> {
+    VecGraph::adjacent(self, &vid).map(|(v, _e)| *v).collect()
   }
 }
 
