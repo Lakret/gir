@@ -38,6 +38,7 @@ pub trait AbstractGraph<V, E> {
 
 pub struct IGraph<V, E, VId> {
   vertices: FnvHashSet<V>,
+  // TODO: add edges & switch to FnvHashMap
   adjacency: HashMap<VId, Vec<(VId, E)>>,
   indexer: fn(&V) -> VId,
 }
