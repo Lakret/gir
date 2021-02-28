@@ -1,7 +1,5 @@
-use derive_more::From;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 // Known approaches:
@@ -39,7 +37,16 @@ pub trait AbstractGraph<V, E> {
 pub struct IGraph<V, E, VId> {
   vertices: HashMap<VId, V>,
   adjacency: HashMap<VId, Vec<(VId, E)>>,
-  indexer: Box<dyn Fn(&V) -> VId>,
+  indexer: fn(&V) -> VId,
+}
+
+fn hash_vertex<V>(vertex: &V) -> u64
+where
+  V: Hash,
+{
+  let mut state = DefaultHasher::new();
+  vertex.hash(&mut state);
+  state.finish()
 }
 
 impl<V, E> IGraph<V, E, u64>
@@ -50,11 +57,7 @@ where
     IGraph {
       vertices: HashMap::new(),
       adjacency: HashMap::new(),
-      indexer: Box::new(|vertex| {
-        let mut state = DefaultHasher::new();
-        vertex.hash(&mut state);
-        state.finish()
-      }),
+      indexer: hash_vertex,
     }
   }
 }
