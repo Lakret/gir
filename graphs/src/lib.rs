@@ -1,6 +1,6 @@
 use fnv::FnvHasher;
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::collections::{hash_map::DefaultHasher, HashSet};
 use std::hash::{Hash, Hasher};
 
 // Known approaches:
@@ -36,7 +36,7 @@ pub trait AbstractGraph<V, E> {
 //
 
 pub struct IGraph<V, E, VId> {
-  vertices: HashMap<VId, V>,
+  vertices: HashSet<V>,
   adjacency: HashMap<VId, Vec<(VId, E)>>,
   indexer: fn(&V) -> VId,
 }
@@ -56,7 +56,7 @@ where
 {
   pub fn new() -> IGraph<V, E, u64> {
     IGraph {
-      vertices: HashMap::new(),
+      vertices: HashSet::new(),
       adjacency: HashMap::new(),
       indexer: hash_vertex,
     }
@@ -65,7 +65,7 @@ where
 
 impl<V, E> AbstractGraph<V, E> for IGraph<V, E, u64>
 where
-  V: Hash,
+  V: Eq + Hash,
 {
   type VId = u64;
 
@@ -75,7 +75,7 @@ where
 
   fn push_vertex(self: &mut IGraph<V, E, u64>, vertex: V) -> Self::VId {
     let vid = (self.indexer)(&vertex);
-    self.vertices.insert(vid, vertex);
+    self.vertices.insert(vertex);
     vid
   }
 
