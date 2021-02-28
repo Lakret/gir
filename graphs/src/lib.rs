@@ -1,3 +1,4 @@
+use fnv::FnvHashSet;
 use fnv::FnvHasher;
 use std::collections::HashMap;
 use std::collections::{hash_map::DefaultHasher, HashSet};
@@ -36,7 +37,7 @@ pub trait AbstractGraph<V, E> {
 //
 
 pub struct IGraph<V, E, VId> {
-  vertices: HashSet<V>,
+  vertices: FnvHashSet<V>,
   adjacency: HashMap<VId, Vec<(VId, E)>>,
   indexer: fn(&V) -> VId,
 }
@@ -56,7 +57,7 @@ where
 {
   pub fn new() -> IGraph<V, E, u64> {
     IGraph {
-      vertices: HashSet::new(),
+      vertices: FnvHashSet::default(),
       adjacency: HashMap::new(),
       indexer: hash_vertex,
     }
