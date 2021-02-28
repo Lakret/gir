@@ -1,3 +1,4 @@
+use fnv::FnvHasher;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -44,7 +45,7 @@ fn hash_vertex<V>(vertex: &V) -> u64
 where
   V: Hash,
 {
-  let mut state = DefaultHasher::new();
+  let mut state = FnvHasher::default();
   vertex.hash(&mut state);
   state.finish()
 }
