@@ -1,7 +1,5 @@
-use fnv::FnvHashSet;
-use fnv::FnvHasher;
+use fnv::{FnvHashMap, FnvHashSet, FnvHasher};
 use std::collections::HashMap;
-use std::collections::{hash_map::DefaultHasher, HashSet};
 use std::hash::{Hash, Hasher};
 
 // Known approaches:
@@ -38,8 +36,7 @@ pub trait AbstractGraph<V, E> {
 
 pub struct IGraph<V, E, VId> {
   vertices: FnvHashSet<V>,
-  // TODO: add edges & switch to FnvHashMap
-  adjacency: HashMap<VId, Vec<(VId, E)>>,
+  adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
   indexer: fn(&V) -> VId,
 }
 
@@ -59,7 +56,7 @@ where
   pub fn new() -> IGraph<V, E, u64> {
     IGraph {
       vertices: FnvHashSet::default(),
-      adjacency: HashMap::new(),
+      adjacency: FnvHashMap::default(),
       indexer: hash_vertex,
     }
   }
