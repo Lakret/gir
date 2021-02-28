@@ -49,19 +49,6 @@ where
   state.finish()
 }
 
-impl<V, E> IGraph<V, E, u64>
-where
-  V: Hash,
-{
-  pub fn new() -> IGraph<V, E, u64> {
-    IGraph {
-      vertices: FnvHashSet::default(),
-      adjacency: FnvHashMap::default(),
-      indexer: hash_vertex,
-    }
-  }
-}
-
 impl<V, E> AbstractGraph<V, E> for IGraph<V, E, u64>
 where
   V: Eq + Hash,
@@ -79,8 +66,7 @@ where
   }
 
   fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E) {
-    let adjacent_to_from = self.adjacency.entry(from).or_default();
-    adjacent_to_from.push((to, edge));
+    self.push_edge_vid(from, to, edge);
   }
 
   fn adjacent<'a>(self: &Self, vid: Self::VId) -> Vec<Self::VId> {
@@ -98,6 +84,31 @@ where
       .iter()
       .map(|vid_and_e| f(vid_and_e))
       .collect()
+  }
+}
+
+impl<V, E> IGraph<V, E, u64>
+where
+  V: Hash,
+{
+  pub fn new() -> IGraph<V, E, u64> {
+    IGraph {
+      vertices: FnvHashSet::default(),
+      adjacency: FnvHashMap::default(),
+      indexer: hash_vertex,
+    }
+  }
+
+  pub fn push_edge_direct(self: &mut Self, from: &V, to: &V, edge: E) {
+    let from_vid = (self.indexer)(from);
+    let to_vid = (self.indexer)(to);
+
+    self.push_edge_vid(from_vid, to_vid, edge);
+  }
+
+  fn push_edge_vid(self: &mut Self, from: u64, to: u64, edge: E) {
+    let adjacent_to_from = self.adjacency.entry(from).or_default();
+    adjacent_to_from.push((to, edge));
   }
 }
 
