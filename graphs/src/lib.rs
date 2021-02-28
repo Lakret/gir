@@ -23,7 +23,11 @@ pub trait AbstractGraph<V, E> {
   fn push_vertex(self: &mut Self, vertex: V) -> Self::VId;
   fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E);
 
-  fn adjacent<'a>(self: &mut Self, vid: Self::VId) -> Vec<Self::VId>;
+  fn adjacent<'a>(self: &Self, vid: Self::VId) -> Vec<Self::VId>;
+
+  fn map_adjacent<F, R>(self: &Self, vid: Self::VId, f: F) -> Vec<R>
+  where
+    F: Fn(&(Self::VId, E)) -> R;
 }
 
 impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
@@ -41,8 +45,21 @@ impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
     self.push_edge(from, to, edge);
   }
 
-  fn adjacent<'a>(self: &'a mut VecGraph<V, E>, vid: Self::VId) -> Vec<Self::VId> {
+  fn adjacent(self: &VecGraph<V, E>, vid: Self::VId) -> Vec<Self::VId> {
     VecGraph::adjacent(self, &vid).map(|(v, _e)| *v).collect()
+  }
+
+  fn map_adjacent<F, R>(self: &VecGraph<V, E>, vid: Self::VId, f: F) -> Vec<R>
+  where
+    F: Fn(&(Self::VId, E)) -> R,
+  {
+    self
+      .adjacency
+      .get(&vid)
+      .unwrap()
+      .iter()
+      .map(|v_and_e| f(v_and_e))
+      .collect()
   }
 }
 
@@ -62,10 +79,6 @@ impl<V, E> VecGraph<V, E> {
     }
   }
 
-  pub fn adjacent(self: &Self, vertex: &usize) -> impl Iterator<Item = &(usize, E)> {
-    self.adjacency.get(vertex).unwrap().iter()
-  }
-
   pub fn push_vertex(self: &mut Self, vertex: V) -> usize {
     let last_idx = self.vertices.len();
     self.vertices.push(vertex);
@@ -75,6 +88,10 @@ impl<V, E> VecGraph<V, E> {
   pub fn push_edge(self: &mut Self, from: usize, to: usize, edge: E) {
     let adjacent_to_from = self.adjacency.entry(from).or_default();
     adjacent_to_from.push((to, edge));
+  }
+
+  pub fn adjacent(self: &Self, vertex: &usize) -> impl Iterator<Item = &(usize, E)> {
+    self.adjacency.get(vertex).unwrap().iter()
   }
 }
 
@@ -103,16 +120,10 @@ mod tests {
     assert_eq!(g.adjacency.get(&c_id).unwrap(), &[(a_id, "C -> A".to_string())]);
 
     assert_eq!(
-      g.get_adjacent(&a_id).collect::<Vec<_>>(),
-      [&(b_id, "A -> B".to_string()), &(a_id, "A loop".to_string())]
+      g.map_adjacent(a_id, |x| x.clone()),
+      [(b_id, "A -> B".to_string()), (a_id, "A loop".to_string())]
     );
-    assert_eq!(
-      g.get_adjacent(&b_id).collect::<Vec<_>>(),
-      [&(c_id, "B -> C".to_string())]
-    );
-    assert_eq!(
-      g.get_adjacent(&c_id).collect::<Vec<_>>(),
-      [&(a_id, "C -> A".to_string())]
-    );
+    assert_eq!(g.map_adjacent(b_id, |x| x.clone()), [(c_id, "B -> C".to_string())]);
+    assert_eq!(g.map_adjacent(c_id, |x| x.clone()), [(a_id, "C -> A".to_string())]);
   }
 }
