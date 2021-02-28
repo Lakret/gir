@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[macro_use]
 extern crate criterion;
 
@@ -6,7 +8,6 @@ use std::collections::HashSet;
 
 use graphs::{AbstractGraph, IGraph, VecGraph};
 
-#[allow(dead_code)]
 fn push_vertices_vec_graph(n: u64) -> VecGraph<u64, u64> {
   let mut g = VecGraph::new();
   for i in 0..n {
@@ -15,7 +16,6 @@ fn push_vertices_vec_graph(n: u64) -> VecGraph<u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn push_vertices_igraph(n: u64) -> IGraph<u64, u64, u64> {
   let mut g = IGraph::new();
   for i in 0..n {
@@ -24,7 +24,6 @@ fn push_vertices_igraph(n: u64) -> IGraph<u64, u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn make_sequence_vec_graph(n: u64) -> VecGraph<u64, u64> {
   let mut g = VecGraph::new();
 
@@ -42,7 +41,6 @@ fn make_sequence_vec_graph(n: u64) -> VecGraph<u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn make_sequence_igraph(n: u64) -> IGraph<u64, u64, u64> {
   let mut g = IGraph::new();
 
@@ -60,7 +58,6 @@ fn make_sequence_igraph(n: u64) -> IGraph<u64, u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn make_complete_vec_graph(n: u64) -> VecGraph<u64, u64> {
   let mut g = VecGraph::new();
 
@@ -83,7 +80,6 @@ fn make_complete_vec_graph(n: u64) -> VecGraph<u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn make_complete_igraph(n: u64) -> IGraph<u64, u64, u64> {
   let mut g = IGraph::new();
 
@@ -107,7 +103,6 @@ fn make_complete_igraph(n: u64) -> IGraph<u64, u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn make_complete_direct_values_push_igraph(n: u64) -> IGraph<u64, u64, u64> {
   let mut g = IGraph::new();
 
@@ -128,7 +123,6 @@ fn make_complete_direct_values_push_igraph(n: u64) -> IGraph<u64, u64, u64> {
   g
 }
 
-#[allow(dead_code)]
 fn push_vertices(c: &mut Criterion) {
   c.bench_function("igraph (push_vertices)", |b| {
     b.iter(|| push_vertices_igraph(black_box(1_000)))
@@ -139,7 +133,6 @@ fn push_vertices(c: &mut Criterion) {
   });
 }
 
-#[allow(dead_code)]
 fn make_sequence(c: &mut Criterion) {
   c.bench_function("igraph (make_sequence)", |b| {
     b.iter(|| make_sequence_igraph(black_box(1_000)))
@@ -150,7 +143,6 @@ fn make_sequence(c: &mut Criterion) {
   });
 }
 
-#[allow(dead_code)]
 fn make_complete(c: &mut Criterion) {
   c.bench_function("igraph (make_complete)", |b| {
     b.iter(|| make_complete_igraph(black_box(1_000)))
