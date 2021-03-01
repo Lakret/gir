@@ -2,21 +2,21 @@ use crate::AbstractGraph;
 /**
  * Vector indexed Graphs.
  */
-use std::collections::HashMap;
+use fnv::FnvHashMap;
 
 // Note: currently this cannot support deletion of vertices,
 // since it will shift their positions in the vector.
 #[derive(Debug, Clone)]
 pub struct VecGraph<V, E> {
   vertices: Vec<V>,
-  adjacency: HashMap<usize, Vec<(usize, E)>>,
+  adjacency: FnvHashMap<usize, Vec<(usize, E)>>,
 }
 
 impl<V, E> VecGraph<V, E> {
   pub fn new() -> Self {
     VecGraph {
       vertices: vec![],
-      adjacency: HashMap::new(),
+      adjacency: FnvHashMap::default(),
     }
   }
 

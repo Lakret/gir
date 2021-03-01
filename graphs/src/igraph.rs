@@ -6,12 +6,14 @@ use std::hash::{Hash, Hasher};
 
 use crate::AbstractGraph;
 
-pub struct IGraph<V, E, VId> {
+type VId = u64;
+
+pub struct IGraph<V, E> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
 }
 
-impl<V, E, VId> IGraph<V, E, VId>
+impl<V, E> IGraph<V, E>
 where
   V: Hash,
 {
@@ -22,7 +24,7 @@ where
   }
 }
 
-impl<V, E> AbstractGraph<V, E> for IGraph<V, E, u64>
+impl<V, E> AbstractGraph<V, E> for IGraph<V, E>
 where
   V: Eq + Hash,
 {
@@ -32,7 +34,7 @@ where
     IGraph::new()
   }
 
-  fn push_vertex(self: &mut IGraph<V, E, u64>, vertex: V) -> Self::VId {
+  fn push_vertex(self: &mut IGraph<V, E>, vertex: V) -> Self::VId {
     let vid = self.hash_vertex(&vertex);
     self.vertices.insert(vid, vertex);
     vid
@@ -64,11 +66,11 @@ where
   }
 }
 
-impl<V, E> IGraph<V, E, u64>
+impl<V, E> IGraph<V, E>
 where
   V: Hash,
 {
-  pub fn new() -> IGraph<V, E, u64> {
+  pub fn new() -> IGraph<V, E> {
     IGraph {
       vertices: FnvHashMap::default(),
       adjacency: FnvHashMap::default(),
@@ -94,7 +96,7 @@ mod tests {
 
   #[test]
   fn can_create_an_indexed_graph() {
-    let mut g: IGraph<&str, String, u64> = IGraph::new();
+    let mut g: IGraph<&str, String> = IGraph::new();
     let a_id = g.push_vertex("A");
     let b_id = g.push_vertex("B");
     let c_id = g.push_vertex("C");
