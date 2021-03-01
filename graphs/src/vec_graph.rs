@@ -67,6 +67,10 @@ impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
       .map(|v_and_e| f(v_and_e))
       .collect()
   }
+
+  fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V> {
+    Some(&self.vertices[vid])
+  }
 }
 
 #[cfg(test)]

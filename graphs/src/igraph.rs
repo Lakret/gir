@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher};
 use crate::AbstractGraph;
 
 pub struct IGraph<V, E, VId> {
-  vertices: FnvHashSet<V>,
+  vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
   indexer: fn(&V) -> VId,
 }
@@ -33,7 +33,7 @@ where
 
   fn push_vertex(self: &mut IGraph<V, E, u64>, vertex: V) -> Self::VId {
     let vid = (self.indexer)(&vertex);
-    self.vertices.insert(vertex);
+    self.vertices.insert(vid, vertex);
     vid
   }
 
@@ -57,6 +57,10 @@ where
       .map(|vid_and_e| f(vid_and_e))
       .collect()
   }
+
+  fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V> {
+    self.vertices.get(&vid)
+  }
 }
 
 impl<V, E> IGraph<V, E, u64>
@@ -65,7 +69,7 @@ where
 {
   pub fn new() -> IGraph<V, E, u64> {
     IGraph {
-      vertices: FnvHashSet::default(),
+      vertices: FnvHashMap::default(),
       adjacency: FnvHashMap::default(),
       indexer: hash_vertex,
     }
