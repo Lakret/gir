@@ -1,24 +1,34 @@
-use graphs::{AbstractGraph, VecGraph};
+use graphs::{AbstractGraph, IGraph};
 
 use crate::maze::{Cell, Maze, Wall};
+use Wall::*;
 
 impl Maze {
-  pub fn as_graph(&self) -> VecGraph<Cell, Wall> {
-    let mut g: VecGraph<Cell, Wall> = VecGraph::new();
-
+  pub fn as_graph(&self) -> IGraph<Cell, Wall> {
+    let mut cells = vec![];
     for row in 0..self.height {
       for col in 0..self.width {
-        let cell = (row, col);
-        g.push_vertex(cell);
+        cells.push((row, col));
       }
     }
 
-    // for row in 0..self.height {
-    //   for col in 0..self.width {
-    //     g.push_edge(from, to, )
-    //   }
-    // }
+    let mut g: IGraph<Cell, Wall> = IGraph::new();
+    for cell in cells.iter().cloned() {
+      g.push_vertex(cell);
+    }
 
-    todo!()
+    let walls = [Left, Right, Bottom, Top];
+    for &cell in cells.iter() {
+      let from = g.get_vid(&cell);
+
+      for &wall in &walls {
+        if let Some(neighbour_cell) = self.neighbour(cell, wall) {
+          let to = g.get_vid(&neighbour_cell);
+          g.push_edge(from, to, wall);
+        }
+      }
+    }
+
+    g
   }
 }

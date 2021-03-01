@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-#[macro_use]
 extern crate criterion;
-
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::collections::HashSet;
 

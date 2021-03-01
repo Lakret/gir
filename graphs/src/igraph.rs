@@ -17,10 +17,22 @@ impl<V, E> IGraph<V, E>
 where
   V: Hash,
 {
-  fn hash_vertex(&self, vertex: &V) -> u64 {
+  pub fn get_vid(&self, vertex: &V) -> u64 {
     let mut state = FnvHasher::default();
     vertex.hash(&mut state);
     state.finish()
+  }
+
+  pub fn get_vid_if_exists(&self, vertex: &V) -> Option<u64> {
+    let mut state = FnvHasher::default();
+    vertex.hash(&mut state);
+    let vid = state.finish();
+
+    if self.vertices.contains_key(&vid) {
+      Some(vid)
+    } else {
+      None
+    }
   }
 }
 
@@ -35,7 +47,7 @@ where
   }
 
   fn push_vertex(self: &mut IGraph<V, E>, vertex: V) -> Self::VId {
-    let vid = self.hash_vertex(&vertex);
+    let vid = self.get_vid(&vertex);
     self.vertices.insert(vid, vertex);
     vid
   }
@@ -78,8 +90,8 @@ where
   }
 
   pub fn push_edge_direct(self: &mut Self, from: &V, to: &V, edge: E) {
-    let from_vid = self.hash_vertex(from);
-    let to_vid = self.hash_vertex(to);
+    let from_vid = self.get_vid(from);
+    let to_vid = self.get_vid(to);
 
     self.push_edge_vid(from_vid, to_vid, edge);
   }
@@ -120,5 +132,9 @@ mod tests {
     );
     assert_eq!(g.map_adjacent(b_id, |x| x.clone()), [(c_id, "B -> C".to_string())]);
     assert_eq!(g.map_adjacent(c_id, |x| x.clone()), [(a_id, "C -> A".to_string())]);
+
+    assert_eq!(g.get_vertex(g.get_vid(&"A")), Some(&"A"));
+    assert_eq!(g.get_vertex(g.get_vid(&"B")), Some(&"B"));
+    assert_eq!(g.get_vertex(g.get_vid(&"Z")), None);
   }
 }
