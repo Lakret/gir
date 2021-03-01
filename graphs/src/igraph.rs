@@ -8,6 +8,7 @@ use crate::AbstractGraph;
 
 type VId = u64;
 
+#[derive(Debug)]
 pub struct IGraph<V, E> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
@@ -23,15 +24,60 @@ where
     state.finish()
   }
 
-  pub fn get_vid_if_exists(&self, vertex: &V) -> Option<u64> {
-    let mut state = FnvHasher::default();
-    vertex.hash(&mut state);
-    let vid = state.finish();
+  pub fn contains(&self, vid: &VId) -> bool {
+    self.vertices.contains_key(vid)
+  }
 
-    if self.vertices.contains_key(&vid) {
-      Some(vid)
-    } else {
-      None
+  pub fn iter_vertices(&self) -> impl Iterator<Item = (&VId, &V)> {
+    self.vertices.iter()
+  }
+
+  pub fn iter_edges(&self) -> impl Iterator<Item = (&VId, &Vec<(VId, E)>)> {
+    self.adjacency.iter().map(|(from_vid, incident)| (from_vid, incident))
+  }
+
+  pub fn iter_complete_edges(&self) -> impl Iterator<Item = (VId, &VId, &E)> {
+    self.iter_edges().flat_map(|(from_vid, incident)| {
+      let from_vid = *from_vid;
+      incident.iter().map(move |(to_vid, e)| (from_vid, to_vid, e))
+    })
+  }
+}
+
+impl<V, E> IGraph<V, E>
+where
+  V: Hash + Eq + Clone,
+  E: Hash + Eq + Clone,
+{
+  /// Finds spanning tree (no minimality guarantee) for `self`.
+  /// Returns it as a graph of references to vertices & edges owned
+  /// by the current graph.
+  pub fn spanning_tree(&self) -> IGraph<&V, &E> {
+    let mut tree = IGraph::new();
+    let mut edges_to_consider: Vec<(VId, VId, &E)> = vec![];
+
+    if let Some((vid, v)) = self.vertices.iter().next() {
+      tree.push_vertex(v);
+      self.extend_with_incident(&mut edges_to_consider, vid);
+    }
+
+    while let Some((from_vid, to_vid, edge)) = edges_to_consider.pop() {
+      if !tree.contains(&to_vid) {
+        if let Some(to) = self.get_vertex(to_vid) {
+          tree.push_vertex(to);
+          tree.push_edge(from_vid, to_vid, edge);
+
+          self.extend_with_incident(&mut edges_to_consider, &to_vid);
+        }
+      }
+    }
+
+    tree
+  }
+
+  fn extend_with_incident<'a, 'b>(&'a self, edges_to_consider: &'b mut Vec<(VId, VId, &'a E)>, vid: &'b VId) {
+    if let Some(incident_edges) = self.adjacency.get(vid) {
+      edges_to_consider.extend(incident_edges.iter().map(|(to, e)| (*vid, *to, e)));
     }
   }
 }
@@ -136,5 +182,36 @@ mod tests {
     assert_eq!(g.get_vertex(g.get_vid(&"A")), Some(&"A"));
     assert_eq!(g.get_vertex(g.get_vid(&"B")), Some(&"B"));
     assert_eq!(g.get_vertex(g.get_vid(&"Z")), None);
+  }
+
+  #[test]
+  fn spanning_tree_works() {
+    let mut g: IGraph<&str, u32> = IGraph::new();
+
+    let a_id = g.push_vertex("A");
+    let b_id = g.push_vertex("B");
+    let c_id = g.push_vertex("C");
+    let d_id = g.push_vertex("D");
+
+    g.push_edge(a_id, b_id, 0);
+    g.push_edge(b_id, c_id, 1);
+    g.push_edge(c_id, d_id, 2);
+
+    g.push_edge(d_id, a_id, 3);
+    g.push_edge(d_id, c_id, 4);
+    g.push_edge(c_id, b_id, 5);
+
+    dbg!(&g);
+    let tree = g.spanning_tree();
+    dbg!(&tree);
+
+    assert_eq!(tree.iter_vertices().collect::<Vec<_>>().len(), 4);
+
+    let tree_edges = tree.iter_complete_edges().collect::<Vec<_>>();
+    assert_eq!(tree_edges.len(), 3);
+
+    let mut edges = tree_edges.into_iter().map(|(_, _, edge)| **edge).collect::<Vec<_>>();
+    edges.sort();
+    assert_eq!(&edges, &[0, 1, 2]);
   }
 }
