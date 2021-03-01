@@ -1,7 +1,7 @@
 /**
  * Indexed Graphs.
  */
-use fnv::{FnvHashMap, FnvHashSet, FnvHasher};
+use fnv::{FnvHashMap, FnvHasher};
 use std::hash::{Hash, Hasher};
 
 use crate::AbstractGraph;
@@ -9,16 +9,17 @@ use crate::AbstractGraph;
 pub struct IGraph<V, E, VId> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
-  indexer: fn(&V) -> VId,
 }
 
-fn hash_vertex<V>(vertex: &V) -> u64
+impl<V, E, VId> IGraph<V, E, VId>
 where
   V: Hash,
 {
-  let mut state = FnvHasher::default();
-  vertex.hash(&mut state);
-  state.finish()
+  fn hash_vertex(&self, vertex: &V) -> u64 {
+    let mut state = FnvHasher::default();
+    vertex.hash(&mut state);
+    state.finish()
+  }
 }
 
 impl<V, E> AbstractGraph<V, E> for IGraph<V, E, u64>
@@ -32,7 +33,7 @@ where
   }
 
   fn push_vertex(self: &mut IGraph<V, E, u64>, vertex: V) -> Self::VId {
-    let vid = (self.indexer)(&vertex);
+    let vid = self.hash_vertex(&vertex);
     self.vertices.insert(vid, vertex);
     vid
   }
@@ -71,13 +72,12 @@ where
     IGraph {
       vertices: FnvHashMap::default(),
       adjacency: FnvHashMap::default(),
-      indexer: hash_vertex,
     }
   }
 
   pub fn push_edge_direct(self: &mut Self, from: &V, to: &V, edge: E) {
-    let from_vid = (self.indexer)(from);
-    let to_vid = (self.indexer)(to);
+    let from_vid = self.hash_vertex(from);
+    let to_vid = self.hash_vertex(to);
 
     self.push_edge_vid(from_vid, to_vid, edge);
   }

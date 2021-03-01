@@ -160,7 +160,7 @@ fn make_complete(c: &mut Criterion) {
 criterion_group! {
   name = benches;
   config = Criterion::default().sample_size(10);
-  targets = make_complete
+  targets = push_vertices, make_sequence, make_complete
 }
 
 // criterion_group!(benches, push_vertices, make_sequence, make_complete);
