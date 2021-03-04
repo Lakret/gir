@@ -15,7 +15,7 @@ pub enum Wall {
 }
 
 impl Wall {
-  fn opposite(self) -> Wall {
+  pub fn opposite(self) -> Wall {
     match self {
       Top => Bottom,
       Bottom => Top,

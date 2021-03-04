@@ -9,13 +9,21 @@ impl Maze {
     let graph_maze = maze.as_graph();
 
     let mut new_maze = maze.clone();
+    // FIXME: need to iterate through each vertex instead, it seems
     for (from, _to, wall) in graph_maze.spanning_tree().iter_complete_edges() {
       let cell = *graph_maze.get_vertex(from).unwrap();
-      // FIXME: "negate" walls, i.e. add only those that are not in the graph
-      new_maze.add_cell(cell, &[**wall]);
+      new_maze.add_cell(cell, &[wall.opposite()]);
     }
 
     dbg!(&new_maze);
+    dbg!(&graph_maze.spanning_tree());
+    let mut spanning_tree_vertices = graph_maze
+      .spanning_tree()
+      .iter_vertices()
+      .map(|(_vid, (row, col))| format!("({}, {})", row, col))
+      .collect::<Vec<_>>();
+    spanning_tree_vertices.sort();
+    dbg!(&spanning_tree_vertices);
     new_maze
   }
 
