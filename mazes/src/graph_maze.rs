@@ -3,7 +3,33 @@ use graphs::{AbstractGraph, IGraph};
 use crate::maze::{Cell, Maze, Wall};
 use Wall::*;
 
+#[derive(Clone, std::hash::Hash, PartialEq, Eq)]
+enum Passage {
+  ArrowLeft,
+  ArrowDown,
+}
+
 impl Maze {
+  pub fn generate_maze_via_graph(width: u32, height: u32) -> Maze {
+    let connected_graph = Maze::gen_connected_graph(width, height);
+    let spanning_tree = connected_graph.spanning_tree();
+    Maze::as_maze(&spanning_tree, width, height)
+  }
+
+  fn gen_connected_graph(width: u32, height: u32) -> IGraph<Cell, Passage> {
+    let mut g = IGraph::new();
+    // TODO:
+    g
+  }
+
+  fn as_maze(graph: &IGraph<&Cell, &Passage>, width: u32, height: u32) -> Maze {
+    let maze = Maze::new(width, height);
+    // TODO:
+    maze
+  }
+
+  // TODO: remove the old impl
+
   pub fn generate_with_graph(width: u32, height: u32) -> Maze {
     let maze = Maze::new(width, height);
     let graph_maze = maze.as_graph();
@@ -40,6 +66,8 @@ impl Maze {
       g.push_vertex(cell);
     }
 
+    // TODO: should we only do it in one direction, i.e. from
+    // the "smaller" to the "larger" cell coords?
     let walls = [Left, Right, Bottom, Top];
     for &cell in cells.iter() {
       let from = g.get_vid(&cell);
