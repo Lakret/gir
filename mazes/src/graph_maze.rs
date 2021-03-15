@@ -1,85 +1,92 @@
 use graphs::{AbstractGraph, IGraph};
+use std::{collections::HashSet, hash::Hash};
 
 use crate::maze::{Cell, Maze, Wall};
 use Wall::*;
 
-#[derive(Clone, std::hash::Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Passage {
-  ArrowLeft,
+  ArrowRight,
   ArrowDown,
 }
 
+use Passage::*;
+
 impl Maze {
+  // FIXME: add randomness to make non-trivial mazes too
   pub fn generate_maze_via_graph(width: u32, height: u32) -> Maze {
     let connected_graph = Maze::gen_connected_graph(width, height);
-    let spanning_tree = connected_graph.spanning_tree();
+    dbg!(&connected_graph);
+
+    let start_vid = connected_graph.get_vid(&(0, 0));
+    let spanning_tree = connected_graph.spanning_tree(start_vid);
+    dbg!(&spanning_tree);
+
     Maze::as_maze(&spanning_tree, width, height)
   }
 
   fn gen_connected_graph(width: u32, height: u32) -> IGraph<Cell, Passage> {
     let mut g = IGraph::new();
-    // TODO:
-    g
-  }
 
-  fn as_maze(graph: &IGraph<&Cell, &Passage>, width: u32, height: u32) -> Maze {
-    let maze = Maze::new(width, height);
-    // TODO:
-    maze
-  }
+    for row in 0..height {
+      for col in 0..width {
+        let to_vid = g.push_vertex((row, col));
 
-  // TODO: remove the old impl
+        // if there's a cell to the left, make an edge
+        // (row, col - 1) -> (row, col)
+        if col >= 1 {
+          let from_vid = g.get_vid(&(row, col - 1));
+          g.push_edge(from_vid, to_vid, ArrowRight);
+        }
 
-  pub fn generate_with_graph(width: u32, height: u32) -> Maze {
-    let maze = Maze::new(width, height);
-    let graph_maze = maze.as_graph();
-
-    let mut new_maze = maze.clone();
-    // FIXME: need to iterate through each vertex instead, it seems
-    for (from, _to, wall) in graph_maze.spanning_tree().iter_complete_edges() {
-      let cell = *graph_maze.get_vertex(from).unwrap();
-      new_maze.add_cell(cell, &[wall.opposite()]);
-    }
-
-    dbg!(&new_maze);
-    dbg!(&graph_maze.spanning_tree());
-    let mut spanning_tree_vertices = graph_maze
-      .spanning_tree()
-      .iter_vertices()
-      .map(|(_vid, (row, col))| format!("({}, {})", row, col))
-      .collect::<Vec<_>>();
-    spanning_tree_vertices.sort();
-    dbg!(&spanning_tree_vertices);
-    new_maze
-  }
-
-  pub fn as_graph(&self) -> IGraph<Cell, Wall> {
-    let mut cells = vec![];
-    for row in 0..self.height {
-      for col in 0..self.width {
-        cells.push((row, col));
-      }
-    }
-
-    let mut g: IGraph<Cell, Wall> = IGraph::new();
-    for cell in cells.iter().cloned() {
-      g.push_vertex(cell);
-    }
-
-    // TODO: should we only do it in one direction, i.e. from
-    // the "smaller" to the "larger" cell coords?
-    let walls = [Left, Right, Bottom, Top];
-    for &cell in cells.iter() {
-      let from = g.get_vid(&cell);
-
-      for &wall in &walls {
-        if let Some(neighbour_cell) = self.neighbour(cell, wall) {
-          let to = g.get_vid(&neighbour_cell);
-          g.push_edge(from, to, wall);
+        // if there's a cell above, make an edge
+        // (row - 1, col) ↓ (row, col)
+        if row >= 1 {
+          let from_vid = g.get_vid(&(row - 1, col));
+          g.push_edge(from_vid, to_vid, ArrowDown)
         }
       }
     }
 
     g
+  }
+
+  fn as_maze(graph: &IGraph<&Cell, &Passage>, width: u32, height: u32) -> Maze {
+    let mut maze = Maze::new(width, height);
+    let all_walls = [Left, Right, Top, Bottom].iter().collect::<HashSet<_>>();
+
+    for row in 0..height {
+      for col in 0..width {
+        let cell = (row, col);
+        let mut walls = all_walls.clone();
+
+        let vid = graph.get_vid(&&cell);
+        // remove walls blocking passages starting at this cell
+        graph.map_adjacent(vid, |&(_to_vid, edge)| match edge {
+          ArrowRight => walls.remove(&Right),
+          ArrowDown => walls.remove(&Bottom),
+        });
+
+        // if a cell to the left exists, check if there's a passage
+        if col >= 1 {
+          let left_vid = graph.get_vid(&&(row, col - 1));
+          if graph.get_edge(left_vid, vid).is_some() {
+            walls.remove(&Left);
+          }
+        }
+
+        // if a cell above exists, check if there's a passage
+        if row >= 1 {
+          let above_vid = graph.get_vid(&&(row - 1, col));
+          if graph.get_edge(above_vid, vid).is_some() {
+            walls.remove(&Top);
+          }
+        }
+
+        maze.add_cell(cell, &walls.into_iter().cloned().collect::<Vec<_>>());
+      }
+    }
+
+    maze
   }
 }

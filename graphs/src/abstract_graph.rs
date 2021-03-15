@@ -20,9 +20,10 @@ pub trait AbstractGraph<V, E> {
   fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E);
 
   fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V>;
+  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E>;
 
   fn adjacent<'a>(self: &Self, vid: Self::VId) -> Vec<Self::VId>;
   fn map_adjacent<F, R>(self: &Self, vid: Self::VId, f: F) -> Vec<R>
   where
-    F: Fn(&(Self::VId, E)) -> R;
+    F: FnMut(&(Self::VId, E)) -> R;
 }

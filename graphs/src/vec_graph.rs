@@ -55,21 +55,29 @@ impl<V, E> AbstractGraph<V, E> for VecGraph<V, E> {
     VecGraph::adjacent(self, &vid).map(|(v, _e)| *v).collect()
   }
 
-  fn map_adjacent<F, R>(self: &VecGraph<V, E>, vid: Self::VId, f: F) -> Vec<R>
+  fn map_adjacent<F, R>(self: &VecGraph<V, E>, vid: Self::VId, mut f: F) -> Vec<R>
   where
-    F: Fn(&(Self::VId, E)) -> R,
+    F: FnMut(&(Self::VId, E)) -> R,
   {
-    self
-      .adjacency
-      .get(&vid)
-      .unwrap()
-      .iter()
-      .map(|v_and_e| f(v_and_e))
-      .collect()
+    let edges = self.adjacency.get(&vid);
+
+    match edges {
+      None => vec![],
+      Some(edges) => edges.iter().map(|vid_and_e| f(vid_and_e)).collect(),
+    }
   }
 
   fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V> {
     Some(&self.vertices[vid])
+  }
+
+  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E> {
+    self.adjacency.get(&from_vid).and_then(|edges| {
+      edges
+        .iter()
+        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
+        .map(|(_, edge)| edge)
+    })
   }
 }
 

@@ -52,14 +52,14 @@ where
   /// Finds spanning tree (no minimality guarantee) for `self`.
   /// Returns it as a graph of references to vertices & edges owned
   /// by the current graph.
-  pub fn spanning_tree(&self) -> IGraph<&V, &E> {
+  pub fn spanning_tree(&self, start_vid: VId) -> IGraph<&V, &E> {
     let mut tree = IGraph::new();
     let mut edges_to_consider: Vec<(VId, VId, &E)> = vec![];
 
-    if let Some((vid, v)) = self.vertices.iter().next() {
-      tree.push_vertex(v);
-      self.extend_with_incident(&mut edges_to_consider, vid);
-    }
+    // FIXME: error handling
+    let v = self.vertices.get(&start_vid).unwrap();
+    tree.push_vertex(v);
+    self.extend_with_incident(&mut edges_to_consider, &start_vid);
 
     while let Some((from_vid, to_vid, edge)) = edges_to_consider.pop() {
       if !tree.contains(&to_vid) {
@@ -106,21 +106,29 @@ where
     self.adjacency.get(&vid).unwrap().iter().map(|(vid, _e)| *vid).collect()
   }
 
-  fn map_adjacent<F, R>(self: &Self, vid: Self::VId, f: F) -> Vec<R>
+  fn map_adjacent<F, R>(self: &Self, vid: Self::VId, mut f: F) -> Vec<R>
   where
-    F: Fn(&(Self::VId, E)) -> R,
+    F: FnMut(&(Self::VId, E)) -> R,
   {
-    self
-      .adjacency
-      .get(&vid)
-      .unwrap()
-      .iter()
-      .map(|vid_and_e| f(vid_and_e))
-      .collect()
+    let edges = self.adjacency.get(&vid);
+
+    match edges {
+      None => vec![],
+      Some(edges) => edges.iter().map(|vid_and_e| f(vid_and_e)).collect(),
+    }
   }
 
   fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V> {
     self.vertices.get(&vid)
+  }
+
+  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E> {
+    self.adjacency.get(&from_vid).and_then(|edges| {
+      edges
+        .iter()
+        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
+        .map(|(_, edge)| edge)
+    })
   }
 }
 
@@ -202,7 +210,7 @@ mod tests {
     g.push_edge(c_id, b_id, 5);
 
     dbg!(&g);
-    let tree = g.spanning_tree();
+    let tree = g.spanning_tree(a_id);
     dbg!(&tree);
 
     assert_eq!(tree.iter_vertices().collect::<Vec<_>>().len(), 4);
