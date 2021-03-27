@@ -16,13 +16,14 @@ pub trait AbstractGraph<V, E> {
   type VId;
 
   fn new() -> Self;
-  fn push_vertex(self: &mut Self, vertex: V) -> Self::VId;
+  fn push_vertex(self: &mut Self, vid: Self::VId, vertex: V);
   fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E);
 
-  fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V>;
+  fn has_vertex(self: &Self, vid: &Self::VId) -> bool;
+  fn get_vertex(self: &Self, vid: &Self::VId) -> Option<&V>;
   fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E>;
 
-  fn adjacent<'a>(self: &Self, vid: Self::VId) -> Vec<Self::VId>;
+  fn adjacent(self: &Self, vid: Self::VId) -> Vec<&Self::VId>;
   fn map_adjacent<F, R>(self: &Self, vid: Self::VId, f: F) -> Vec<R>
   where
     F: FnMut(&(Self::VId, E)) -> R;

@@ -6,22 +6,48 @@ use std::hash::{Hash, Hasher};
 
 use crate::AbstractGraph;
 
-type VId = u64;
+// type VId = u64;
+//
+// TODO: does it make sense?
+// pub struct IGraphCustomVId<VId, V, E> {
+//   vertices: FnvHashMap<VId, V>,
+//   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
+// }
+//
+// pub fn get_vid(&self, vertex: &V) -> u64 {
+//   let mut state = FnvHasher::default();
+//   vertex.hash(&mut state);
+//   state.finish()
+// }
 
+/// A hashmap-based Graph representation.
+/// Owns vertex and edge data, and exposes explicit vertex id type parameter `VId`.
+///
+/// ## Identity-only graphs
+///
+/// It's often easier to represent simple graphs that don't have any specific
+/// info associated with each vertex, except for that vertex's identity
+/// as `IGraph<(), E, VId>`. This is similar to how `HashSet` is defined:
+/// it also uses `HashMap<Key, Value = ()>` internally.
+///
+/// If your `VId` type is `Copy` or a reference, you can get useability similar to
+/// the famous [Python graph representation via hashmaps](https://www.python.org/doc/essays/graphs/).
 #[derive(Debug)]
-pub struct IGraph<V, E> {
+pub struct IGraph<V, E, VId = u64> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
 }
 
-impl<V, E> IGraph<V, E>
+impl<V, E, VId> IGraph<V, E, VId>
 where
   V: Hash,
+  VId: Eq + Hash,
 {
-  pub fn get_vid(&self, vertex: &V) -> u64 {
-    let mut state = FnvHasher::default();
-    vertex.hash(&mut state);
-    state.finish()
+  pub fn new() -> IGraph<V, E, VId> {
+    IGraph {
+      vertices: FnvHashMap::default(),
+      adjacency: FnvHashMap::default(),
+    }
   }
 
   pub fn contains(&self, vid: &VId) -> bool {
@@ -36,74 +62,52 @@ where
     self.adjacency.iter().map(|(from_vid, incident)| (from_vid, incident))
   }
 
-  pub fn iter_complete_edges(&self) -> impl Iterator<Item = (VId, &VId, &E)> {
-    self.iter_edges().flat_map(|(from_vid, incident)| {
-      let from_vid = *from_vid;
-      incident.iter().map(move |(to_vid, e)| (from_vid, to_vid, e))
-    })
+  pub fn iter_complete_edges(&self) -> impl Iterator<Item = (&VId, &VId, &E)> {
+    self
+      .iter_edges()
+      .flat_map(|(from_vid, incident)| incident.iter().map(move |(to_vid, e)| (from_vid, to_vid, e)))
   }
 }
 
-impl<V, E> IGraph<V, E>
-where
-  V: Hash + Eq + Clone,
-  E: Hash + Eq + Clone,
-{
-  /// Finds spanning tree (no minimality guarantee) for `self`.
-  /// Returns it as a graph of references to vertices & edges owned
-  /// by the current graph.
-  pub fn spanning_tree(&self, start_vid: VId) -> IGraph<&V, &E> {
-    let mut tree = IGraph::new();
-    let mut edges_to_consider: Vec<(VId, VId, &E)> = vec![];
-
-    // FIXME: error handling
-    let v = self.vertices.get(&start_vid).unwrap();
-    tree.push_vertex(v);
-    self.extend_with_incident(&mut edges_to_consider, &start_vid);
-
-    while let Some((from_vid, to_vid, edge)) = edges_to_consider.pop() {
-      if !tree.contains(&to_vid) {
-        if let Some(to) = self.get_vertex(to_vid) {
-          tree.push_vertex(to);
-          tree.push_edge(from_vid, to_vid, edge);
-
-          self.extend_with_incident(&mut edges_to_consider, &to_vid);
-        }
-      }
-    }
-
-    tree
-  }
-
-  fn extend_with_incident<'a, 'b>(&'a self, edges_to_consider: &'b mut Vec<(VId, VId, &'a E)>, vid: &'b VId) {
-    if let Some(incident_edges) = self.adjacency.get(vid) {
-      edges_to_consider.extend(incident_edges.iter().map(|(to, e)| (*vid, *to, e)));
-    }
-  }
-}
-
-impl<V, E> AbstractGraph<V, E> for IGraph<V, E>
+impl<V, E, VId> AbstractGraph<V, E> for IGraph<V, E, VId>
 where
   V: Eq + Hash,
+  VId: Eq + Hash,
 {
-  type VId = u64;
+  type VId = VId;
 
   fn new() -> Self {
     IGraph::new()
   }
 
-  fn push_vertex(self: &mut IGraph<V, E>, vertex: V) -> Self::VId {
-    let vid = self.get_vid(&vertex);
+  fn has_vertex(self: &Self, vid: &Self::VId) -> bool {
+    self.vertices.contains_key(vid)
+  }
+
+  fn get_vertex(self: &Self, vid: &Self::VId) -> Option<&V> {
+    self.vertices.get(vid)
+  }
+
+  fn push_vertex(self: &mut IGraph<V, E, VId>, vid: VId, vertex: V) {
     self.vertices.insert(vid, vertex);
-    vid
   }
 
-  fn push_edge(self: &mut Self, from: Self::VId, to: Self::VId, edge: E) {
-    self.push_edge_vid(from, to, edge);
+  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E> {
+    self.adjacency.get(&from_vid).and_then(|edges| {
+      edges
+        .iter()
+        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
+        .map(|(_, edge)| edge)
+    })
   }
 
-  fn adjacent<'a>(self: &Self, vid: Self::VId) -> Vec<Self::VId> {
-    self.adjacency.get(&vid).unwrap().iter().map(|(vid, _e)| *vid).collect()
+  fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
+    let adjacent_to_from = self.adjacency.entry(from).or_default();
+    adjacent_to_from.push((to, edge));
+  }
+
+  fn adjacent(self: &Self, vid: Self::VId) -> Vec<&Self::VId> {
+    self.adjacency.get(&vid).unwrap().iter().map(|(vid, _e)| vid).collect()
   }
 
   fn map_adjacent<F, R>(self: &Self, vid: Self::VId, mut f: F) -> Vec<R>
@@ -117,42 +121,49 @@ where
       Some(edges) => edges.iter().map(|vid_and_e| f(vid_and_e)).collect(),
     }
   }
-
-  fn get_vertex(self: &Self, vid: Self::VId) -> Option<&V> {
-    self.vertices.get(&vid)
-  }
-
-  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E> {
-    self.adjacency.get(&from_vid).and_then(|edges| {
-      edges
-        .iter()
-        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
-        .map(|(_, edge)| edge)
-    })
-  }
 }
 
-impl<V, E> IGraph<V, E>
+// TODO:
+// impl Iterator for IGraph<VID, V, E>
+
+impl<V, E, VId> IGraph<V, E, VId>
 where
-  V: Hash,
+  V: Hash + Eq + Clone,
+  E: Hash + Eq + Clone,
+  VId: Eq + Hash + Clone,
 {
-  pub fn new() -> IGraph<V, E> {
-    IGraph {
-      vertices: FnvHashMap::default(),
-      adjacency: FnvHashMap::default(),
+  /// Finds spanning tree (no minimality guarantee) for `self`.
+  /// Returns it as a graph of references to vertices & edges owned
+  /// by the current graph.
+  pub fn spanning_tree<'a>(&'a self, start_vid: &'a VId) -> IGraph<&'a V, &'a E, &'a VId> {
+    let mut tree = IGraph::new();
+    let mut edges_to_consider: Vec<(&VId, &VId, &E)> = vec![];
+
+    // FIXME: error handling
+    let v = self.vertices.get(start_vid).unwrap();
+    tree.push_vertex(start_vid, v);
+    self.extend_with_incident(&mut edges_to_consider, start_vid);
+
+    while let Some((from_vid, to_vid, edge)) = edges_to_consider.pop() {
+      if !tree.contains(&&to_vid) {
+        if let Some(to) = self.get_vertex(to_vid) {
+          tree.push_vertex(&to_vid, to);
+          tree.push_edge(&from_vid, &to_vid, edge);
+
+          self.extend_with_incident(&mut edges_to_consider, &to_vid);
+        }
+      }
     }
+
+    tree
   }
 
-  pub fn push_edge_direct(self: &mut Self, from: &V, to: &V, edge: E) {
-    let from_vid = self.get_vid(from);
-    let to_vid = self.get_vid(to);
-
-    self.push_edge_vid(from_vid, to_vid, edge);
-  }
-
-  fn push_edge_vid(self: &mut Self, from: u64, to: u64, edge: E) {
-    let adjacent_to_from = self.adjacency.entry(from).or_default();
-    adjacent_to_from.push((to, edge));
+  fn extend_with_incident<'a, 'b>(&'a self, edges_to_consider: &'b mut Vec<(&'a VId, &'a VId, &'a E)>, vid: &'a VId) {
+    if let Some(incident_edges) = self.adjacency.get(vid) {
+      for (to, e) in incident_edges.iter() {
+        edges_to_consider.push((vid, to, e))
+      }
+    }
   }
 }
 
@@ -162,55 +173,55 @@ mod tests {
 
   #[test]
   fn can_create_an_indexed_graph() {
-    let mut g: IGraph<&str, String> = IGraph::new();
-    let a_id = g.push_vertex("A");
-    let b_id = g.push_vertex("B");
-    let c_id = g.push_vertex("C");
+    let mut g: IGraph<(), String, &str> = IGraph::new();
+    g.push_vertex("A", ());
+    g.push_vertex("B", ());
+    g.push_vertex("C", ());
 
-    g.push_edge(a_id, b_id, "A -> B".to_string());
-    g.push_edge(b_id, c_id, "B -> C".to_string());
-    g.push_edge(c_id, a_id, "C -> A".to_string());
-    g.push_edge(a_id, a_id, "A loop".to_string());
+    g.push_edge("A", "B", "A -> B".to_string());
+    g.push_edge("B", "C", "B -> C".to_string());
+    g.push_edge("C", "A", "C -> A".to_string());
+    g.push_edge("A", "A", "A loop".to_string());
 
     assert_eq!(g.vertices.len(), 3);
     assert_eq!(
-      g.adjacency.get(&a_id).unwrap(),
-      &[(b_id, "A -> B".to_string()), (a_id, "A loop".to_string())]
+      g.adjacency.get("A").unwrap(),
+      &[("B", "A -> B".to_string()), ("A", "A loop".to_string())]
     );
-    assert_eq!(g.adjacency.get(&b_id).unwrap(), &[(c_id, "B -> C".to_string())]);
-    assert_eq!(g.adjacency.get(&c_id).unwrap(), &[(a_id, "C -> A".to_string())]);
+    assert_eq!(g.adjacency.get("B").unwrap(), &[("C", "B -> C".to_string())]);
+    assert_eq!(g.adjacency.get("C").unwrap(), &[("A", "C -> A".to_string())]);
 
     assert_eq!(
-      g.map_adjacent(a_id, |x| x.clone()),
-      [(b_id, "A -> B".to_string()), (a_id, "A loop".to_string())]
+      g.map_adjacent("A", |x| x.clone()),
+      [("B", "A -> B".to_string()), ("A", "A loop".to_string())]
     );
-    assert_eq!(g.map_adjacent(b_id, |x| x.clone()), [(c_id, "B -> C".to_string())]);
-    assert_eq!(g.map_adjacent(c_id, |x| x.clone()), [(a_id, "C -> A".to_string())]);
+    assert_eq!(g.map_adjacent("B", |x| x.clone()), [("C", "B -> C".to_string())]);
+    assert_eq!(g.map_adjacent("C", |x| x.clone()), [("A", "C -> A".to_string())]);
 
-    assert_eq!(g.get_vertex(g.get_vid(&"A")), Some(&"A"));
-    assert_eq!(g.get_vertex(g.get_vid(&"B")), Some(&"B"));
-    assert_eq!(g.get_vertex(g.get_vid(&"Z")), None);
+    assert_eq!(g.get_vertex(&"A"), Some(&()));
+    assert_eq!(g.get_vertex(&"B"), Some(&()));
+    assert_eq!(g.get_vertex(&"Z"), None);
   }
 
   #[test]
   fn spanning_tree_works() {
-    let mut g: IGraph<&str, u32> = IGraph::new();
+    let mut g: IGraph<(), u32, &str> = IGraph::new();
 
-    let a_id = g.push_vertex("A");
-    let b_id = g.push_vertex("B");
-    let c_id = g.push_vertex("C");
-    let d_id = g.push_vertex("D");
+    g.push_vertex("A", ());
+    g.push_vertex("B", ());
+    g.push_vertex("C", ());
+    g.push_vertex("D", ());
 
-    g.push_edge(a_id, b_id, 0);
-    g.push_edge(b_id, c_id, 1);
-    g.push_edge(c_id, d_id, 2);
+    g.push_edge("A", "B", 0);
+    g.push_edge("B", "C", 1);
+    g.push_edge("C", "D", 2);
 
-    g.push_edge(d_id, a_id, 3);
-    g.push_edge(d_id, c_id, 4);
-    g.push_edge(c_id, b_id, 5);
+    g.push_edge("D", "A", 3);
+    g.push_edge("D", "C", 4);
+    g.push_edge("C", "B", 5);
 
     dbg!(&g);
-    let tree = g.spanning_tree(a_id);
+    let tree = g.spanning_tree(&"A");
     dbg!(&tree);
 
     assert_eq!(tree.iter_vertices().collect::<Vec<_>>().len(), 4);
