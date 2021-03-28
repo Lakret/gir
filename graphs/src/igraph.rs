@@ -1,7 +1,19 @@
 use fnv::FnvHashMap;
 use std::hash::Hash;
 
-use crate::AbstractGraph;
+// Known approaches:
+//
+//  1) `Rc` (https://github.com/nrc/r4cppp/blob/master/graphs/README.md)
+//      Cons: Need to be careful with cycles, Rc's are leaked into userspace
+//  2) `Arena`, `&`, and `UnsafeCell` (same source)
+//      Cons: `unsafe`, additional fun with mutability if it's desired
+//  3) Vector indices as keys for vertices
+//  (http://smallcultfollowing.com/babysteps/blog/2015/04/06/modeling-graphs-in-rust-using-vector-indices/)
+//  also used in https://docs.rs/petgraph/0.5.1/petgraph/
+//  Cons: doesn't allow deletion, need to pass those indexes to use the API, cannot easily recover them
+//  4) Indexed graphs - use HashMap(s) to save vertices and possibly edges.
+//  Cons: additional memory and slowdown due to hashing. Still have indices in the API, but they are recoverable.
+//  Pros: easiest to implement. Supports deletion. Since indices can be restored, doesn't require much thinking about them.
 
 /// A hashmap-based Graph representation.
 /// Owns vertex and edge data, and exposes explicit vertex id type parameter `VId`.
@@ -59,32 +71,20 @@ where
   pub fn incident_edges(self: &Self, vid: &VId) -> Option<&Vec<(VId, E)>> {
     self.adjacency.get(vid)
   }
-}
 
-impl<V, E, VId> AbstractGraph<V, E> for IGraph<VId, E, V>
-where
-  V: Eq + Hash,
-  VId: Eq + Hash,
-{
-  type VId = VId;
-
-  fn new() -> Self {
-    IGraph::new()
-  }
-
-  fn has_vertex(self: &Self, vid: &Self::VId) -> bool {
+  pub fn has_vertex(self: &Self, vid: &VId) -> bool {
     self.vertices.contains_key(vid)
   }
 
-  fn get_vertex(self: &Self, vid: &Self::VId) -> Option<&V> {
+  pub fn get_vertex(self: &Self, vid: &VId) -> Option<&V> {
     self.vertices.get(vid)
   }
 
-  fn push_vertex(self: &mut IGraph<VId, E, V>, vid: VId, vertex: V) {
+  pub fn push_vertex(self: &mut IGraph<VId, E, V>, vid: VId, vertex: V) {
     self.vertices.insert(vid, vertex);
   }
 
-  fn get_edge(self: &Self, from_vid: Self::VId, to_vid: Self::VId) -> Option<&E> {
+  pub fn get_edge(self: &Self, from_vid: VId, to_vid: VId) -> Option<&E> {
     self.adjacency.get(&from_vid).and_then(|edges| {
       edges
         .iter()
@@ -93,18 +93,18 @@ where
     })
   }
 
-  fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
+  pub fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
     let adjacent_to_from = self.adjacency.entry(from).or_default();
     adjacent_to_from.push((to, edge));
   }
 
-  fn adjacent(self: &Self, vid: Self::VId) -> Vec<&Self::VId> {
+  pub fn adjacent(self: &Self, vid: VId) -> Vec<&VId> {
     self.adjacency.get(&vid).unwrap().iter().map(|(vid, _e)| vid).collect()
   }
 
-  fn map_adjacent<F, R>(self: &Self, vid: Self::VId, mut f: F) -> Vec<R>
+  pub fn map_adjacent<F, R>(self: &Self, vid: VId, mut f: F) -> Vec<R>
   where
-    F: FnMut(&(Self::VId, E)) -> R,
+    F: FnMut(&(VId, E)) -> R,
   {
     let edges = self.adjacency.get(&vid);
 

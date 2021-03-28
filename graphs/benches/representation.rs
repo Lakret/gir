@@ -3,7 +3,7 @@
 extern crate criterion;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use graphs::{AbstractGraph, IGraph};
+use graphs::IGraph;
 
 fn push_vertices_igraph(n: u64) -> IGraph<u64, u64> {
   let mut g = IGraph::new();

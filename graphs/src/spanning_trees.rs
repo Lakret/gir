@@ -1,4 +1,4 @@
-use crate::{AbstractGraph, IGraph};
+use crate::IGraph;
 use std::hash::Hash;
 
 impl<VId, E, V> IGraph<VId, E, V>

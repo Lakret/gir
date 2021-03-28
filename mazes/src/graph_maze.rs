@@ -1,4 +1,4 @@
-use graphs::{AbstractGraph, IGraph};
+use graphs::IGraph;
 use std::{collections::HashSet, hash::Hash};
 
 use crate::maze::{Cell, Maze, Wall};
