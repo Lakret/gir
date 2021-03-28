@@ -50,6 +50,7 @@ where
     W: Ord,
   {
     let mut tree = Graph::new();
+    // BinaryHeap is a max-heap by default, so we use `Reverse` on weights to get a min-heap.
     let mut edges_to_consider: BinaryHeap<WeightedEdge<VId, E, Reverse<W>>> = BinaryHeap::new();
 
     self.get_vertex(start_vid).map(|v| {
