@@ -18,6 +18,9 @@ use Direction::*;
 type Passage = (Direction, u32);
 
 impl Maze {
+  /// Generates a Maze via minimum spanning tree algorithm on graphs.
+  ///
+  /// To make non-boring mazes sets each edge to a random weight.
   pub fn generate_maze_via_graph(width: u32, height: u32) -> Maze {
     let connected_graph = Maze::gen_connected_graph(width, height);
 
@@ -25,7 +28,7 @@ impl Maze {
       .minimum_spanning_tree(&(0, 0), &(|(_direction, weight)| *weight))
       .unwrap();
 
-    Maze::as_maze(&spanning_tree, width, height)
+    Maze::mst_as_maze(&spanning_tree, width, height)
   }
 
   fn gen_connected_graph(width: u32, height: u32) -> Graph<Cell, Passage> {
@@ -39,15 +42,13 @@ impl Maze {
         let to_cell = (row, col);
         g.push_vertex(to_cell, ());
 
-        // if there's a cell to the left, make edges
-        // (row, col - 1) <-> (row, col)
+        // if there's a cell to the left, make edges `(row, col - 1) <-> (row, col)`.
         if col >= 1 {
           g.push_edge((row, col - 1), to_cell, (ArrowRight, rng.gen()));
           g.push_edge(to_cell, (row, col - 1), (ArrowLeft, rng.gen()));
         }
 
-        // if there's a cell above, make an edge
-        // (row - 1, col) ↕ (row, col)
+        // if there's a cell above, make an edge `(row - 1, col) ↕ (row, col)`.
         if row >= 1 {
           g.push_edge((row - 1, col), to_cell, (ArrowDown, rng.gen()));
           g.push_edge(to_cell, (row - 1, col), (ArrowUp, rng.gen()));
@@ -58,7 +59,7 @@ impl Maze {
     g
   }
 
-  fn as_maze(graph: &Graph<&Cell, &Passage, &()>, width: u32, height: u32) -> Maze {
+  fn mst_as_maze(graph: &Graph<&Cell, &Passage, &()>, width: u32, height: u32) -> Maze {
     let mut maze = Maze::new(width, height);
     let all_walls = [Left, Right, Top, Bottom].iter().collect::<HashSet<_>>();
 
