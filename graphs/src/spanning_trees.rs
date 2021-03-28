@@ -3,31 +3,6 @@ use std::cmp::{Ord, Ordering, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
 use std::hash::Hash;
 
-struct WeightedEdge<'a, VId, E, W: Ord> {
-  edge: (&'a VId, &'a VId, &'a E),
-  weight: W,
-}
-
-impl<'a, VId, E, W: Ord> Ord for WeightedEdge<'a, VId, E, W> {
-  fn cmp(&self, other: &Self) -> Ordering {
-    self.weight.cmp(&other.weight)
-  }
-}
-
-impl<'a, VId, E, W: Ord> PartialOrd for WeightedEdge<'a, VId, E, W> {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    Some(self.weight.cmp(&other.weight))
-  }
-}
-
-impl<'a, VId, E, W: Ord> PartialEq for WeightedEdge<'a, VId, E, W> {
-  fn eq(&self, other: &Self) -> bool {
-    self.weight == other.weight
-  }
-}
-
-impl<'a, VId, E, W: Ord> Eq for WeightedEdge<'a, VId, E, W> {}
-
 impl<VId, E, V> Graph<VId, E, V>
 where
   VId: Eq + Hash + Clone,
@@ -98,6 +73,31 @@ where
     }
   }
 }
+
+struct WeightedEdge<'a, VId, E, W: Ord> {
+  edge: (&'a VId, &'a VId, &'a E),
+  weight: W,
+}
+
+impl<'a, VId, E, W: Ord> Ord for WeightedEdge<'a, VId, E, W> {
+  fn cmp(&self, other: &Self) -> Ordering {
+    self.weight.cmp(&other.weight)
+  }
+}
+
+impl<'a, VId, E, W: Ord> PartialOrd for WeightedEdge<'a, VId, E, W> {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.weight.cmp(&other.weight))
+  }
+}
+
+impl<'a, VId, E, W: Ord> PartialEq for WeightedEdge<'a, VId, E, W> {
+  fn eq(&self, other: &Self) -> bool {
+    self.weight == other.weight
+  }
+}
+
+impl<'a, VId, E, W: Ord> Eq for WeightedEdge<'a, VId, E, W> {}
 
 #[cfg(test)]
 mod tests {

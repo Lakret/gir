@@ -2,8 +2,6 @@ use std::error::Error;
 use std::time::Instant;
 
 use mazes::draw::draw;
-// TODO:
-// use mazes::graph_maze;
 use mazes::maze::Maze;
 
 /// You can pass arguments like this:
@@ -19,6 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (width, height) = (args[0], args[1]);
 
     let t = Instant::now();
+    // let maze = Maze::generate(width, height);
     let maze = Maze::generate_maze_via_graph(width, height);
     println!("Generated {}x{} maze in {:?}.", width, height, t.elapsed());
 

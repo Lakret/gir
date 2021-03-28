@@ -1,17 +1,6 @@
 use fnv::FnvHashMap;
 use std::hash::Hash;
 
-// TODO:  graph as iterator of edges?
-// impl Iterator for IGraph<VID, E, V>
-//
-// TODO: auto-indexing with hashes?
-// type VId = u64;
-// pub fn get_vid(&self, vertex: &V) -> u64 {
-//   let mut state = FnvHasher::default();
-//   vertex.hash(&mut state);
-//   state.finish()
-// }
-
 /// A `HashMap`-based explicitly indexed Graph representation.
 ///
 /// Owns vertex and edge data, and exposes explicit vertex id type parameter `VId`.
@@ -57,8 +46,8 @@ use std::hash::Hash;
 ///   essentially a more limited version of indexed graphs.
 #[derive(Debug)]
 pub struct Graph<VId, E = (), V = ()> {
-  vertices: FnvHashMap<VId, V>,
-  adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
+  pub(crate) vertices: FnvHashMap<VId, V>,
+  pub(crate) adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
 }
 
 impl<VId, E, V> Graph<VId, E, V>
