@@ -1,26 +1,28 @@
-use graphs::Graph;
+use rand::{thread_rng, Rng};
 use std::{collections::HashSet, hash::Hash};
 
 use crate::maze::{Cell, Maze, Wall};
+use graphs::Graph;
 use Wall::*;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-enum Passage {
+enum Direction {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   ArrowDown,
 }
 
-use Passage::*;
+use Direction::*;
+
+type Passage = (Direction, u32);
 
 impl Maze {
-  // FIXME: add randomness to make non-trivial mazes too
   pub fn generate_maze_via_graph(width: u32, height: u32) -> Maze {
     let connected_graph = Maze::gen_connected_graph(width, height);
     dbg!(&connected_graph);
 
-    let spanning_tree = connected_graph.spanning_tree(&(0, 0));
+    let spanning_tree = connected_graph.minimum_spanning_tree(&(0, 0), &(|(_direction, weight)| *weight));
     dbg!(&spanning_tree);
 
     Maze::as_maze(&spanning_tree, width, height)
@@ -28,6 +30,9 @@ impl Maze {
 
   fn gen_connected_graph(width: u32, height: u32) -> Graph<Cell, Passage> {
     let mut g = Graph::new();
+    // used to set each edge's weight to a random number
+    // so that minimum spanning tree is different every time
+    let mut rng = thread_rng();
 
     for row in 0..height {
       for col in 0..width {
@@ -37,15 +42,15 @@ impl Maze {
         // if there's a cell to the left, make edges
         // (row, col - 1) <-> (row, col)
         if col >= 1 {
-          g.push_edge((row, col - 1), to_cell, ArrowRight);
-          // g.push_edge(to_vid, from_vid, ArrowLeft);
+          g.push_edge((row, col - 1), to_cell, (ArrowRight, rng.gen()));
+          g.push_edge(to_cell, (row, col - 1), (ArrowLeft, rng.gen()));
         }
 
         // if there's a cell above, make an edge
         // (row - 1, col) ↕ (row, col)
         if row >= 1 {
-          g.push_edge((row - 1, col), to_cell, ArrowDown);
-          // g.push_edge(to_vid, from_vid, ArrowUp);
+          g.push_edge((row - 1, col), to_cell, (ArrowDown, rng.gen()));
+          g.push_edge(to_cell, (row - 1, col), (ArrowUp, rng.gen()));
         }
       }
     }
@@ -63,7 +68,7 @@ impl Maze {
         let mut walls = all_walls.clone();
 
         // remove walls blocking passages starting at this cell
-        graph.map_adjacent(&cell, |&(_to_vid, edge)| match edge {
+        graph.map_adjacent(&cell, |&(_to_vid, (direction, _))| match direction {
           ArrowLeft => walls.remove(&Left),
           ArrowRight => walls.remove(&Right),
           ArrowUp => walls.remove(&Top),
