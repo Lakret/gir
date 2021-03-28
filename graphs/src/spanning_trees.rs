@@ -1,18 +1,18 @@
 use crate::{AbstractGraph, IGraph};
 use std::hash::Hash;
 
-impl<V, E, VId> IGraph<V, E, VId>
+impl<VId, E, V> IGraph<VId, E, V>
 where
+  VId: Eq + Hash + Clone,
   V: Hash + Eq + Clone,
   E: Hash + Eq + Clone,
-  VId: Eq + Hash + Clone,
 {
   // TODO: min spanning tree
 
   /// Finds spanning tree (no minimality guarantee) for `self`.
   /// Returns it as a graph of references to vertices & edges owned
   /// by the current graph.
-  pub fn spanning_tree<'a>(&'a self, start_vid: &'a VId) -> IGraph<&'a V, &'a E, &'a VId> {
+  pub fn spanning_tree<'a>(&'a self, start_vid: &'a VId) -> IGraph<&'a VId, &'a E, &'a V> {
     let mut tree = IGraph::new();
     let mut edges_to_consider: Vec<(&VId, &VId, &E)> = vec![];
 
@@ -50,7 +50,7 @@ mod tests {
 
   #[test]
   fn spanning_tree_works() {
-    let mut g: IGraph<(), u32, &str> = IGraph::new();
+    let mut g: IGraph<&str, u32> = IGraph::new();
 
     g.push_vertex("A", ());
     g.push_vertex("B", ());

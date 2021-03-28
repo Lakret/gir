@@ -26,7 +26,7 @@ impl Maze {
     Maze::as_maze(&spanning_tree, width, height)
   }
 
-  fn gen_connected_graph(width: u32, height: u32) -> IGraph<(), Passage, Cell> {
+  fn gen_connected_graph(width: u32, height: u32) -> IGraph<Cell, Passage> {
     let mut g = IGraph::new();
 
     for row in 0..height {
@@ -53,7 +53,7 @@ impl Maze {
     g
   }
 
-  fn as_maze(graph: &IGraph<&(), &Passage, &Cell>, width: u32, height: u32) -> Maze {
+  fn as_maze(graph: &IGraph<&Cell, &Passage, &()>, width: u32, height: u32) -> Maze {
     let mut maze = Maze::new(width, height);
     let all_walls = [Left, Right, Top, Bottom].iter().collect::<HashSet<_>>();
 

@@ -5,7 +5,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use graphs::{AbstractGraph, IGraph};
 
-fn push_vertices_igraph(n: u64) -> IGraph<(), u64> {
+fn push_vertices_igraph(n: u64) -> IGraph<u64, u64> {
   let mut g = IGraph::new();
   for i in 0..n {
     let _vid = g.push_vertex(i, ());
@@ -14,7 +14,7 @@ fn push_vertices_igraph(n: u64) -> IGraph<(), u64> {
   g
 }
 
-fn make_sequence_igraph(n: u64) -> IGraph<(), u64> {
+fn make_sequence_igraph(n: u64) -> IGraph<u64, u64> {
   let mut g = IGraph::new();
 
   let mut prev_vid = None;
@@ -31,7 +31,7 @@ fn make_sequence_igraph(n: u64) -> IGraph<(), u64> {
   g
 }
 
-fn make_complete_igraph(n: u64) -> IGraph<(), u64> {
+fn make_complete_igraph(n: u64) -> IGraph<u64, u64> {
   let mut g = IGraph::new();
 
   for i in 0..n {

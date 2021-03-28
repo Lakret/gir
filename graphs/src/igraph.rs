@@ -1,35 +1,37 @@
-/**
- * Indexed Graphs.
- */
 use fnv::FnvHashMap;
-use std::{collections::binary_heap::Iter, hash::Hash};
+use std::hash::Hash;
 
 use crate::AbstractGraph;
 
 /// A hashmap-based Graph representation.
 /// Owns vertex and edge data, and exposes explicit vertex id type parameter `VId`.
 ///
-/// ## Identity-only graphs
+/// ## Type Parameters Order & Identity-Only Graphs
 ///
 /// It's often easier to represent simple graphs that don't have any specific
 /// info associated with each vertex, except for that vertex's identity
-/// as `IGraph<(), E, VId>`. This is similar to how `HashSet` is defined:
+/// as `IGraph<VId, E, V = ()>`. This is similar to how `HashSet` is defined:
 /// it also uses `HashMap<Key, Value = ()>` internally.
+///
+/// This is why `IGraph<VId, E, V>` type params are in this order.
+/// Graphs that only represent association between identities are the most common;
+/// sometimes we want to add info about the associations themselves;
+/// and the most complex case if when we also have info associated with vertices.
 ///
 /// If your `VId` type is `Copy` or a reference, you can get useability similar to
 /// the famous [Python graph representation via hashmaps](https://www.python.org/doc/essays/graphs/).
 #[derive(Debug)]
-pub struct IGraph<V, E, VId = u64> {
+pub struct IGraph<VId, E = (), V = ()> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
 }
 
-impl<V, E, VId> IGraph<V, E, VId>
+impl<V, E, VId> IGraph<VId, E, V>
 where
   V: Hash,
   VId: Eq + Hash,
 {
-  pub fn new() -> IGraph<V, E, VId> {
+  pub fn new() -> IGraph<VId, E, V> {
     IGraph {
       vertices: FnvHashMap::default(),
       adjacency: FnvHashMap::default(),
@@ -59,7 +61,7 @@ where
   }
 }
 
-impl<V, E, VId> AbstractGraph<V, E> for IGraph<V, E, VId>
+impl<V, E, VId> AbstractGraph<V, E> for IGraph<VId, E, V>
 where
   V: Eq + Hash,
   VId: Eq + Hash,
@@ -78,7 +80,7 @@ where
     self.vertices.get(vid)
   }
 
-  fn push_vertex(self: &mut IGraph<V, E, VId>, vid: VId, vertex: V) {
+  fn push_vertex(self: &mut IGraph<VId, E, V>, vid: VId, vertex: V) {
     self.vertices.insert(vid, vertex);
   }
 
@@ -130,7 +132,7 @@ mod tests {
 
   #[test]
   fn can_create_an_indexed_graph() {
-    let mut g: IGraph<(), String, &str> = IGraph::new();
+    let mut g: IGraph<&str, String> = IGraph::new();
     g.push_vertex("A", ());
     g.push_vertex("B", ());
     g.push_vertex("C", ());
