@@ -20,10 +20,10 @@ type Passage = (Direction, u32);
 impl Maze {
   pub fn generate_maze_via_graph(width: u32, height: u32) -> Maze {
     let connected_graph = Maze::gen_connected_graph(width, height);
-    dbg!(&connected_graph);
 
-    let spanning_tree = connected_graph.minimum_spanning_tree(&(0, 0), &(|(_direction, weight)| *weight));
-    dbg!(&spanning_tree);
+    let spanning_tree = connected_graph
+      .minimum_spanning_tree(&(0, 0), &(|(_direction, weight)| *weight))
+      .unwrap();
 
     Maze::as_maze(&spanning_tree, width, height)
   }
