@@ -1,7 +1,7 @@
-use crate::IGraph;
+use crate::Graph;
 use std::hash::Hash;
 
-impl<VId, E, V> IGraph<VId, E, V>
+impl<VId, E, V> Graph<VId, E, V>
 where
   VId: Eq + Hash + Clone,
   V: Hash + Eq + Clone,
@@ -12,8 +12,8 @@ where
   /// Finds spanning tree (no minimality guarantee) for `self`.
   /// Returns it as a graph of references to vertices & edges owned
   /// by the current graph.
-  pub fn spanning_tree<'a>(&'a self, start_vid: &'a VId) -> IGraph<&'a VId, &'a E, &'a V> {
-    let mut tree = IGraph::new();
+  pub fn spanning_tree<'a>(&'a self, start_vid: &'a VId) -> Graph<&'a VId, &'a E, &'a V> {
+    let mut tree = Graph::new();
     let mut edges_to_consider: Vec<(&VId, &VId, &E)> = vec![];
 
     // FIXME: error handling
@@ -22,7 +22,7 @@ where
     self.extend_with_incident(&mut edges_to_consider, start_vid);
 
     while let Some((from_vid, to_vid, edge)) = edges_to_consider.pop() {
-      if !tree.contains(&&to_vid) {
+      if !tree.has_vertex(&&to_vid) {
         if let Some(to) = self.get_vertex(to_vid) {
           tree.push_vertex(&to_vid, to);
           tree.push_edge(&from_vid, &to_vid, edge);
@@ -50,7 +50,7 @@ mod tests {
 
   #[test]
   fn spanning_tree_works() {
-    let mut g: IGraph<&str, u32> = IGraph::new();
+    let mut g: Graph<&str, u32> = Graph::new();
 
     g.push_vertex("A", ());
     g.push_vertex("B", ());

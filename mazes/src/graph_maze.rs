@@ -1,4 +1,4 @@
-use graphs::IGraph;
+use graphs::Graph;
 use std::{collections::HashSet, hash::Hash};
 
 use crate::maze::{Cell, Maze, Wall};
@@ -26,8 +26,8 @@ impl Maze {
     Maze::as_maze(&spanning_tree, width, height)
   }
 
-  fn gen_connected_graph(width: u32, height: u32) -> IGraph<Cell, Passage> {
-    let mut g = IGraph::new();
+  fn gen_connected_graph(width: u32, height: u32) -> Graph<Cell, Passage> {
+    let mut g = Graph::new();
 
     for row in 0..height {
       for col in 0..width {
@@ -53,7 +53,7 @@ impl Maze {
     g
   }
 
-  fn as_maze(graph: &IGraph<&Cell, &Passage, &()>, width: u32, height: u32) -> Maze {
+  fn as_maze(graph: &Graph<&Cell, &Passage, &()>, width: u32, height: u32) -> Maze {
     let mut maze = Maze::new(width, height);
     let all_walls = [Left, Right, Top, Bottom].iter().collect::<HashSet<_>>();
 

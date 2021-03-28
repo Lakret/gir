@@ -3,10 +3,10 @@
 extern crate criterion;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use graphs::IGraph;
+use graphs::Graph;
 
-fn push_vertices_igraph(n: u64) -> IGraph<u64, u64> {
-  let mut g = IGraph::new();
+fn push_vertices_igraph(n: u64) -> Graph<u64, u64> {
+  let mut g = Graph::new();
   for i in 0..n {
     let _vid = g.push_vertex(i, ());
   }
@@ -14,8 +14,8 @@ fn push_vertices_igraph(n: u64) -> IGraph<u64, u64> {
   g
 }
 
-fn make_sequence_igraph(n: u64) -> IGraph<u64, u64> {
-  let mut g = IGraph::new();
+fn make_sequence_igraph(n: u64) -> Graph<u64, u64> {
+  let mut g = Graph::new();
 
   let mut prev_vid = None;
   for i in 0..n {
@@ -31,8 +31,8 @@ fn make_sequence_igraph(n: u64) -> IGraph<u64, u64> {
   g
 }
 
-fn make_complete_igraph(n: u64) -> IGraph<u64, u64> {
-  let mut g = IGraph::new();
+fn make_complete_igraph(n: u64) -> Graph<u64, u64> {
+  let mut g = Graph::new();
 
   for i in 0..n {
     g.push_vertex(i, ());

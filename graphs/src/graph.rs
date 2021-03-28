@@ -1,21 +1,19 @@
 use fnv::FnvHashMap;
 use std::hash::Hash;
 
-// Known approaches:
+// TODO:  graph as iterator of edges?
+// impl Iterator for IGraph<VID, E, V>
 //
-//  1) `Rc` (https://github.com/nrc/r4cppp/blob/master/graphs/README.md)
-//      Cons: Need to be careful with cycles, Rc's are leaked into userspace
-//  2) `Arena`, `&`, and `UnsafeCell` (same source)
-//      Cons: `unsafe`, additional fun with mutability if it's desired
-//  3) Vector indices as keys for vertices
-//  (http://smallcultfollowing.com/babysteps/blog/2015/04/06/modeling-graphs-in-rust-using-vector-indices/)
-//  also used in https://docs.rs/petgraph/0.5.1/petgraph/
-//  Cons: doesn't allow deletion, need to pass those indexes to use the API, cannot easily recover them
-//  4) Indexed graphs - use HashMap(s) to save vertices and possibly edges.
-//  Cons: additional memory and slowdown due to hashing. Still have indices in the API, but they are recoverable.
-//  Pros: easiest to implement. Supports deletion. Since indices can be restored, doesn't require much thinking about them.
+// TODO: auto-indexing with hashes?
+// type VId = u64;
+// pub fn get_vid(&self, vertex: &V) -> u64 {
+//   let mut state = FnvHasher::default();
+//   vertex.hash(&mut state);
+//   state.finish()
+// }
 
-/// A hashmap-based Graph representation.
+/// A `HashMap`-based explicitly indexed Graph representation.
+///
 /// Owns vertex and edge data, and exposes explicit vertex id type parameter `VId`.
 ///
 /// ## Type Parameters Order & Identity-Only Graphs
@@ -31,31 +29,78 @@ use std::hash::Hash;
 /// and the most complex case if when we also have info associated with vertices.
 ///
 /// If your `VId` type is `Copy` or a reference, you can get useability similar to
-/// the famous [Python graph representation via hashmaps](https://www.python.org/doc/essays/graphs/).
+/// the famous [Python graph representation via dicts](https://www.python.org/doc/essays/graphs/).
+///
+/// ## Alternative Approaches
+///
+/// There are several known approaches for modelling graphs in Rust.
+///
+/// - Explicitly indexed graphs (this implementation) - uses `HashMap`s to save vertices and possibly edges.
+///
+///   **Pros:** Simplest APIs for graphs where `VId`s can fully represent vertices. Supports deletion.<br/>
+///   **Cons:** additional memory and slowdown due to hashing.
+/// - [`Rc`](https://github.com/nrc/r4cppp/blob/master/graphs/README.md#rcrefcellnode)-based.
+///
+///   **Pros:** Easy mutability, flexible since `Rc`s to vertices can be used outside of the graph.<br/>
+///   **Cons:** `Rc`'s need to be handled by the users, ugly API. Need to be careful with cycles,
+///   Slower than explicit references, but faster than indexed graphs.
+/// - [`Arena`, `&`, and `UnsafeCell`](https://github.com/nrc/r4cppp/blob/master/graphs/README.md#node-and-unsafecell).
+///
+///   **Pros:** can support nice API. Efficient.<br/>
+///   **Cons:** `unsafe`, complex to support mutability, needs an arena allocator,
+///   which should be managed separately too.
+/// - [Vector indices as `VId`](http://smallcultfollowing.com/babysteps/blog/2015/04/06/modeling-graphs-in-rust-using-vector-indices/)
+///   also used in [petgraph](https://docs.rs/petgraph/0.5.1/petgraph/).
+///
+///   **Pros:** simpler version of indexed graphs.<br/>
+///   **Cons:** doesn't allow deletion, need to pass those indexes to use the API,
+///   essentially a more limited version of indexed graphs.
 #[derive(Debug)]
-pub struct IGraph<VId, E = (), V = ()> {
+pub struct Graph<VId, E = (), V = ()> {
   vertices: FnvHashMap<VId, V>,
   adjacency: FnvHashMap<VId, Vec<(VId, E)>>,
 }
 
-impl<V, E, VId> IGraph<VId, E, V>
+impl<VId, E, V> Graph<VId, E, V>
 where
-  V: Hash,
   VId: Eq + Hash,
+  V: Hash,
 {
-  pub fn new() -> IGraph<VId, E, V> {
-    IGraph {
+  pub fn new() -> Graph<VId, E, V> {
+    Graph {
       vertices: FnvHashMap::default(),
       adjacency: FnvHashMap::default(),
     }
   }
 
-  pub fn contains(&self, vid: &VId) -> bool {
+  pub fn push_vertex(self: &mut Graph<VId, E, V>, vid: VId, vertex: V) {
+    self.vertices.insert(vid, vertex);
+  }
+
+  pub fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
+    let adjacent_to_from = self.adjacency.entry(from).or_default();
+    adjacent_to_from.push((to, edge));
+  }
+
+  pub fn has_vertex(&self, vid: &VId) -> bool {
     self.vertices.contains_key(vid)
+  }
+
+  pub fn get_vertex(self: &Self, vid: &VId) -> Option<&V> {
+    self.vertices.get(vid)
   }
 
   pub fn iter_vertices(&self) -> impl Iterator<Item = (&VId, &V)> {
     self.vertices.iter()
+  }
+
+  pub fn get_edge(self: &Self, from_vid: VId, to_vid: VId) -> Option<&E> {
+    self.adjacency.get(&from_vid).and_then(|edges| {
+      edges
+        .iter()
+        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
+        .map(|(_, edge)| edge)
+    })
   }
 
   pub fn iter_edges(&self) -> impl Iterator<Item = (&VId, &Vec<(VId, E)>)> {
@@ -70,32 +115,6 @@ where
 
   pub fn incident_edges(self: &Self, vid: &VId) -> Option<&Vec<(VId, E)>> {
     self.adjacency.get(vid)
-  }
-
-  pub fn has_vertex(self: &Self, vid: &VId) -> bool {
-    self.vertices.contains_key(vid)
-  }
-
-  pub fn get_vertex(self: &Self, vid: &VId) -> Option<&V> {
-    self.vertices.get(vid)
-  }
-
-  pub fn push_vertex(self: &mut IGraph<VId, E, V>, vid: VId, vertex: V) {
-    self.vertices.insert(vid, vertex);
-  }
-
-  pub fn get_edge(self: &Self, from_vid: VId, to_vid: VId) -> Option<&E> {
-    self.adjacency.get(&from_vid).and_then(|edges| {
-      edges
-        .iter()
-        .find(|(curr_to_vid, _edge)| *curr_to_vid == to_vid)
-        .map(|(_, edge)| edge)
-    })
-  }
-
-  pub fn push_edge(self: &mut Self, from: VId, to: VId, edge: E) {
-    let adjacent_to_from = self.adjacency.entry(from).or_default();
-    adjacent_to_from.push((to, edge));
   }
 
   pub fn adjacent(self: &Self, vid: VId) -> Vec<&VId> {
@@ -115,24 +134,13 @@ where
   }
 }
 
-// TODO:
-// impl Iterator for IGraph<VID, V, E>
-
-// TODO:
-// type VId = u64;
-// pub fn get_vid(&self, vertex: &V) -> u64 {
-//   let mut state = FnvHasher::default();
-//   vertex.hash(&mut state);
-//   state.finish()
-// }
-
 #[cfg(test)]
 mod tests {
   use super::*;
 
   #[test]
   fn can_create_an_indexed_graph() {
-    let mut g: IGraph<&str, String> = IGraph::new();
+    let mut g: Graph<&str, String> = Graph::new();
     g.push_vertex("A", ());
     g.push_vertex("B", ());
     g.push_vertex("C", ());

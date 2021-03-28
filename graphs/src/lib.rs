@@ -1,3 +1,3 @@
-mod igraph;
+mod graph;
 mod spanning_trees;
-pub use igraph::IGraph;
+pub use graph::Graph;
