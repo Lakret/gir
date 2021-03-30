@@ -123,6 +123,15 @@ where
   }
 }
 
+impl<VId, E> Graph<VId, E, ()>
+where
+  VId: Eq + Hash,
+{
+  pub fn push_vid(self: &mut Self, vid: VId) {
+    self.vertices.insert(vid, ());
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -130,8 +139,9 @@ mod tests {
   #[test]
   fn can_create_an_indexed_graph() {
     let mut g: Graph<&str, String> = Graph::new();
-    g.push_vertex("A", ());
-    g.push_vertex("B", ());
+    g.push_vid("A");
+    g.push_vid("B");
+    // let's verify that this also works
     g.push_vertex("C", ());
 
     g.push_edge("A", "B", "A -> B".to_string());

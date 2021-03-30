@@ -8,7 +8,7 @@ use graphs::Graph;
 fn push_vertices_igraph(n: u64) -> Graph<u64, u64> {
   let mut g = Graph::new();
   for i in 0..n {
-    let _vid = g.push_vertex(i, ());
+    let _vid = g.push_vid(i);
   }
 
   g
@@ -19,7 +19,7 @@ fn make_sequence_igraph(n: u64) -> Graph<u64, u64> {
 
   let mut prev_vid = None;
   for i in 0..n {
-    g.push_vertex(i, ());
+    g.push_vid(i);
 
     if let Some(prev_vid) = prev_vid {
       g.push_edge(prev_vid, i, i);
@@ -35,7 +35,7 @@ fn make_complete_igraph(n: u64) -> Graph<u64, u64> {
   let mut g = Graph::new();
 
   for i in 0..n {
-    g.push_vertex(i, ());
+    g.push_vid(i);
   }
 
   let mut i = 0;

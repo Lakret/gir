@@ -58,7 +58,7 @@ where
     get_edge_weight: F,
     vid: &'a VId,
   ) where
-    F: Fn(&E) -> W,
+    F: Fn(&'a E) -> W,
     W: Ord,
   {
     if let Some(incident_edges) = self.incident_edges(vid) {
@@ -107,10 +107,10 @@ mod tests {
   fn spanning_tree_works() {
     let mut g: Graph<&str, u32> = Graph::new();
 
-    g.push_vertex("A", ());
-    g.push_vertex("B", ());
-    g.push_vertex("C", ());
-    g.push_vertex("D", ());
+    g.push_vid("A");
+    g.push_vid("B");
+    g.push_vid("C");
+    g.push_vid("D");
 
     g.push_edge("A", "B", 4);
     g.push_edge("B", "C", 3);

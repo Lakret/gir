@@ -40,7 +40,7 @@ impl Maze {
     for row in 0..height {
       for col in 0..width {
         let to_cell = (row, col);
-        g.push_vertex(to_cell, ());
+        g.push_vid(to_cell);
 
         // if there's a cell to the left, make edges `(row, col - 1) <-> (row, col)`.
         if col >= 1 {
