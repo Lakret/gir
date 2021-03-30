@@ -132,6 +132,18 @@ where
   }
 }
 
+impl<VId, E, V> Graph<VId, E, V>
+where
+  VId: Eq + Hash + Clone,
+  V: Hash,
+  E: Clone,
+{
+  pub fn push_undirected_edge(self: &mut Self, from: VId, to: VId, edge: E) {
+    self.push_edge(from.clone(), to.clone(), edge.clone());
+    self.push_edge(to, from, edge);
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
