@@ -51,4 +51,29 @@ mod tests {
 
     // dbg!(&ubahn);
   }
+
+  #[derive(Debug, PartialEq, Eq, Hash)]
+  enum Op {
+    Plus,
+    Minus,
+    Multiply,
+  }
+
+  #[derive(Debug, PartialEq, Eq, Hash)]
+  enum Node {
+    Number(i64),
+    Apply(Op),
+    Var(String),
+  }
+
+  use Node::*;
+  use Op::*;
+
+  #[test]
+  fn arithmetic_representation() {
+    let mut expr: Graph<Node> = Graph::new();
+
+    expr.push_vid(Var("x".to_string()));
+    expr.push_vid(Var("y".to_string()));
+  }
 }
