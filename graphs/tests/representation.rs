@@ -54,26 +54,56 @@ mod tests {
 
   #[derive(Debug, PartialEq, Eq, Hash)]
   enum Op {
-    Plus,
-    Minus,
-    Multiply,
+    Sub,
+    Mul,
   }
 
   #[derive(Debug, PartialEq, Eq, Hash)]
-  enum Node {
-    Number(i64),
-    Apply(Op),
+  enum Expr {
+    Num(i64),
     Var(String),
+    Apply { op: Op, lhs: Box<Expr>, rhs: Box<Expr> },
   }
 
-  use Node::*;
+  use Expr::*;
   use Op::*;
 
-  #[test]
-  fn arithmetic_representation() {
-    let mut expr: Graph<Node> = Graph::new();
+  #[derive(Debug, PartialEq, Eq, Hash)]
+  struct Binding {
+    name: String,
+    expr: Expr,
+  }
 
-    expr.push_vid(Var("x".to_string()));
-    expr.push_vid(Var("y".to_string()));
+  #[test]
+  fn bindings_representation() {
+    let mut bindings: Graph<String, (), Expr> = Graph::new();
+
+    let x_expr = Apply {
+      op: Mul,
+      lhs: Box::new(Apply {
+        op: Sub,
+        lhs: Box::new(Num(2)),
+        rhs: Box::new(Num(7)),
+      }),
+      rhs: Box::new(Var("y".to_string())),
+    };
+
+    let y_expr = Apply {
+      op: Sub,
+      lhs: Box::new(Apply {
+        op: Mul,
+        lhs: Box::new(Var("x".to_string())),
+        rhs: Box::new(Num(3)),
+      }),
+      rhs: Box::new(Num(2)),
+    };
+
+    bindings.push_vertex("x".to_string(), x_expr);
+    bindings.push_vertex("y".to_string(), y_expr);
+
+    bindings.push_edge("x".to_string(), "y".to_string(), ());
+    bindings.push_edge("y".to_string(), "x".to_string(), ());
+
+    // dbg!(&bindings);
   }
 }
