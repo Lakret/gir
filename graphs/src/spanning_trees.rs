@@ -5,9 +5,8 @@ use std::hash::Hash;
 
 impl<VId, E, V> Graph<VId, E, V>
 where
-  VId: Eq + Hash + Clone,
-  V: Hash + Eq + Clone,
-  E: Hash + Eq + Clone,
+  VId: Eq + Hash,
+  V: Hash,
 {
   /// Finds minimum spanning tree (MST) for `self`, starting at vertex with `start_vid`,
   /// and using `get_edge_weight` to find the weight of the edges.
@@ -21,23 +20,22 @@ where
     get_edge_weight: &'b F,
   ) -> Option<Graph<&'a VId, &'a E, &'a V>>
   where
-    F: Fn(&E) -> W,
+    F: Fn(&'a E) -> W,
     W: Ord,
   {
     let mut tree = Graph::new();
     // BinaryHeap is a max-heap by default, so we use `Reverse` on weights to get a min-heap.
-    let mut edges_to_consider: BinaryHeap<WeightedEdge<VId, E, Reverse<W>>> = BinaryHeap::new();
+    let mut edges_to_consider = BinaryHeap::new();
 
     self.get_vertex(start_vid).map(|v| {
       tree.push_vertex(start_vid, v);
       self.extend_with_incident(&mut edges_to_consider, get_edge_weight, start_vid);
 
-      while let Some(weighted_edge) = edges_to_consider.pop() {
-        let WeightedEdge {
-          edge: (from_vid, to_vid, edge),
-          ..
-        } = weighted_edge;
-
+      while let Some(WeightedEdge {
+        edge: (from_vid, to_vid, edge),
+        ..
+      }) = edges_to_consider.pop()
+      {
         if !tree.has_vertex(&&to_vid) {
           if let Some(to) = self.get_vertex(to_vid) {
             tree.push_vertex(&to_vid, to);
