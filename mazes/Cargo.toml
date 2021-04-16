@@ -1,0 +1,18 @@
+[package]
+name = "mazes"
+version = "0.1.0"
+authors = ["Lakret <rakuretu@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "mazes"
+path = "src/mod.rs"
+
+[[bin]]
+name = "mazes"
+path = "src/main.rs"
+
+[dependencies]
+graphs = { path =  "../graphs" }
+rand = "0.8"
+svg = "0.8"

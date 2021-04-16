@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::time::Instant;
 
-use gir::draw::draw;
-use gir::maze::Maze;
+use mazes::draw::draw;
+use mazes::maze::Maze;
 
 /// You can pass arguments like this:
 /// `cargo run --release -- 128 72`
@@ -17,7 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (width, height) = (args[0], args[1]);
 
     let t = Instant::now();
-    let maze = Maze::generate(width, height);
+    // let maze = Maze::generate(width, height);
+    let maze = Maze::generate_maze_via_graph(width, height);
     println!("Generated {}x{} maze in {:?}.", width, height, t.elapsed());
 
     let t = Instant::now();
