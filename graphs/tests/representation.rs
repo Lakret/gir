@@ -19,8 +19,6 @@ mod tests {
 
     maze.push_edge("A", "B", Right);
     maze.push_edge("B", "E", Down);
-
-    // dbg!(maze);
   }
 
   #[test]
@@ -48,8 +46,6 @@ mod tests {
 
     ubahn.push_undirected_edge("Seestraße", "Leopoldplatz", u6_line);
     ubahn.push_undirected_edge("Leopoldplatz", "Wedding", u6_line);
-
-    // dbg!(&ubahn);
   }
 
   #[derive(Debug, PartialEq, Eq, Hash)]
@@ -103,7 +99,5 @@ mod tests {
 
     bindings.push_edge("x".to_string(), "y".to_string(), ());
     bindings.push_edge("y".to_string(), "x".to_string(), ());
-
-    // dbg!(&bindings);
   }
 }
