@@ -35,10 +35,24 @@ impl Component for Model {
 
   fn view(&self) -> Html {
     html! {
-        <div>
-            <button onclick=self.link.callback(|_| Msg::AddOne)>{ "+1" }</button>
-            <p>{ self.value }</p>
+      <div>
+        <div class="row">
+          <input class="cell"/>
+          <input class="cell"/>
+          <input class="cell"/>
         </div>
+
+        <div class="row">
+          <input class="cell"/>
+          <input class="cell"/>
+          <input class="cell"/>
+        </div>
+      </div>
+
+        // <div>
+        //     <button onclick=self.link.callback(|_| Msg::AddOne) class="btn">{ "+1" }</button>
+        //     <p>{ self.value }</p>
+        // </div>
     }
   }
 }
