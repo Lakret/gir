@@ -2,11 +2,14 @@
 name = "spreadsheet"
 version = "0.1.0"
 authors = ["Lakret <Rakuretu@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[[bin]]
+name = "spreadsheets"
+path = "src/main.rs"
 
 [dependencies]
-yew = "0.17"
-wasm-bindgen = "0.2.67"
+graphs = { path =  "../graphs" }
+# rand = "0.8"
+yew = { version = "0.20.0", features = ["csr"] }
+wasm-bindgen = "0.2.83"
