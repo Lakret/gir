@@ -12,7 +12,7 @@ fnv = "1.0.3"
 [dev-dependencies]
 # version 0.3 has annoying warnings about future deprecations &
 # incompatible crate that is suggested.
-criterion = "0.2"
+criterion = "0.4"
 
 [[bench]]
 name = "representation"
