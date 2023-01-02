@@ -74,8 +74,10 @@ fn App() -> Html {
   };
 
   html! {
-      <div>
-          <button {onclick}>{ "+1" }</button>
+      <div class="container mx-auto flex flex-col py-8 items-center text-3xl">
+          <button {onclick} class="px-16 py-4 text-center bg-purple-500 hover:bg-purple-800 text-white rounded-lg">
+            { "Add 1" }
+          </button>
           <p>{ *counter }</p>
       </div>
   }
