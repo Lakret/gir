@@ -3,7 +3,7 @@
 
 # Project-specific
 image.svg
-./spreadsheet/output.css
+spreadsheet/output.css
 
 # Yew
 /**/dist
