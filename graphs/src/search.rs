@@ -13,11 +13,16 @@ pub enum MoveFilter<VId, V = ()> {
   ByValues(fn(from: V, to: V) -> bool),
 }
 
+/// Optional callbacks that will be executed on specific conditions during the search.
+///
+/// - `on_explore(parent, vertex)` will be called just before a `vertex` is added to the explored set
+/// when it is reached via `parent`.
 #[derive(Default)]
 pub struct Opts<'a, VId, V> {
   // TODO: make it similar to on_explore and use it
   move_filter: Option<MoveFilter<VId, V>>,
-  // 'a lifetime is needed to avoid requiring static lifetime accidentally
+  // 'a lifetime is needed to avoid requiring static lifetime accidentally;
+  // FnMut since we need to call it multiple times, can allow mutation, but don't need ownership.
   on_explore: Option<Box<dyn FnMut(&VId, &VId) + 'a>>,
 }
 
@@ -39,7 +44,6 @@ where
 
   while let Some(curr) = queue.pop_front() {
     if is_goal(curr, depth) {
-      // TODO: return parents
       return true;
     } else {
       for next in g.adjacent(curr) {
@@ -49,7 +53,6 @@ where
           }
           explored.insert(next);
 
-          // TODO: parents[next] = curr
           queue.push_back(next);
         }
       }
@@ -59,11 +62,28 @@ where
   return false;
 }
 
-pub fn record_parents<'a, 'b, VId>(parent: &'a VId, explored: &'a VId, parents_map: &'b mut HashMap<VId, VId>)
+pub fn record_parents<'a, 'b, VId>(parents: &'b mut HashMap<VId, VId>, parent: &'a VId, explored: &'a VId)
 where
   VId: Hash + Eq + Clone,
 {
-  parents_map.insert(explored.clone(), parent.clone());
+  parents.insert(explored.clone(), parent.clone());
+}
+
+pub fn path_from_parents<'a, VId>(parents: &'a HashMap<VId, VId>, vid: &'a VId) -> Vec<&'a VId>
+where
+  VId: Hash + Eq,
+{
+  // TODO: do we need to include the goal itself into the path?
+  let mut path = vec![vid];
+
+  let mut curr = vid;
+  while let Some(parent) = parents.get(curr) {
+    path.push(parent);
+    curr = parent;
+  }
+
+  path.reverse();
+  path
 }
 
 #[cfg(test)]
@@ -101,7 +121,7 @@ mod tests {
     {
       let mut opts = Opts {
         on_explore: Some(Box::new(|parent, explored| {
-          record_parents(parent, explored, &mut parents)
+          record_parents(&mut parents, parent, explored)
         })),
         ..Opts::default()
       };
@@ -116,6 +136,11 @@ mod tests {
     assert_eq!(parents.get("L2_C"), Some(&"L1_B"));
     assert_eq!(parents.get("L3_A"), Some(&"L2_B"));
     assert_eq!(parents.get("L3_B"), Some(&"L2_C"));
+
+    assert_eq!(
+      path_from_parents(&parents, &"L3_B"),
+      vec![&"Root", &"L1_B", &"L2_C", &"L3_B"]
+    );
 
     // finds the start vertex
     assert!(bfs(&g, &"Root", |vid, _| *vid == "Root", &mut Opts::default()));
