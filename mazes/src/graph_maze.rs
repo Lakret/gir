@@ -69,7 +69,7 @@ impl Maze {
         let mut walls = all_walls.clone();
 
         // remove walls blocking passages starting at this cell
-        graph.map_adjacent(&cell, |&(_to_vid, (direction, _))| match direction {
+        graph.map_adjacent(&&cell, |&(_to_vid, (direction, _))| match direction {
           ArrowLeft => walls.remove(&Left),
           ArrowRight => walls.remove(&Right),
           ArrowUp => walls.remove(&Top),
