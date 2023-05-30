@@ -13,20 +13,16 @@ pub enum MoveFilter<VId, V = ()> {
   ByValues(fn(from: V, to: V) -> bool),
 }
 
-#[derive(Debug)]
-pub enum OnExplore<'a, VId> {
-  RecordParents(&'a mut HashMap<VId, VId>),
-}
-
-// TODO: use those
-#[derive(Debug, Default)]
-pub struct Opts<'a, VId, V = ()> {
+#[derive(Default)]
+pub struct Opts<'a, VId, V> {
+  // TODO: make it similar to on_explore and use it
   move_filter: Option<MoveFilter<VId, V>>,
-  on_explore: Option<OnExplore<'a, VId>>,
+  // 'a lifetime is needed to avoid requiring static lifetime accidentally
+  on_explore: Option<Box<dyn FnMut(&VId, &VId) + 'a>>,
 }
 
 /// Searches the graph `g` using breadth-first search.
-pub fn bfs<VId, E, V, GoalFn>(g: &Graph<VId, E, V>, start: &VId, is_goal: GoalFn, opts: Opts<VId, V>) -> bool
+pub fn bfs<VId, E, V, GoalFn>(g: &Graph<VId, E, V>, start: &VId, is_goal: GoalFn, opts: &mut Opts<VId, V>) -> bool
 where
   VId: Eq + Hash + Clone,
   V: Hash,
@@ -48,8 +44,12 @@ where
     } else {
       for next in g.adjacent(curr) {
         if !explored.contains(next) {
+          if let Some(on_explore) = &mut opts.on_explore {
+            on_explore(curr, next);
+          }
           explored.insert(next);
-          // parents[next] = curr
+
+          // TODO: parents[next] = curr
           queue.push_back(next);
         }
       }
@@ -57,6 +57,13 @@ where
   }
 
   return false;
+}
+
+pub fn record_parents<'a, 'b, VId>(parent: &'a VId, explored: &'a VId, parents_map: &'b mut HashMap<VId, VId>)
+where
+  VId: Hash + Eq + Clone,
+{
+  parents_map.insert(explored.clone(), parent.clone());
 }
 
 #[cfg(test)]
@@ -89,9 +96,31 @@ mod tests {
       g.push_edge(from, to, ());
     }
 
-    // finds a vertex in the last layer even in presence of cycles
-    assert!(bfs(&g, &"Root", |vid, _| *vid == "L3_B", Opts::default()));
+    // finds a vertex in the last layer even in presence of cycles while recording parents
+    let mut parents = HashMap::new();
+    {
+      let mut opts = Opts {
+        on_explore: Some(Box::new(|parent, explored| {
+          record_parents(parent, explored, &mut parents)
+        })),
+        ..Opts::default()
+      };
+
+      assert!(bfs(&g, &"Root", |vid, _| *vid == "L3_B", &mut opts));
+    }
+    assert_eq!(parents.len(), 8);
+    assert_eq!(parents.get("Root"), None);
+    assert_eq!(parents.get("L1_A"), Some(&"Root"));
+    assert_eq!(parents.get("L1_C"), Some(&"Root"));
+    assert_eq!(parents.get("L2_B"), Some(&"L1_A"));
+    assert_eq!(parents.get("L2_C"), Some(&"L1_B"));
+    assert_eq!(parents.get("L3_A"), Some(&"L2_B"));
+    assert_eq!(parents.get("L3_B"), Some(&"L2_C"));
+
+    // finds the start vertex
+    assert!(bfs(&g, &"Root", |vid, _| *vid == "Root", &mut Opts::default()));
+
     // doesn't find a vertex that doesn't exist
-    assert!(!bfs(&g, &"Root", |vid, _| *vid == "L3_C", Opts::default()));
+    assert!(!bfs(&g, &"Root", |vid, _| *vid == "L3_C", &mut Opts::default()));
   }
 }
