@@ -5,15 +5,11 @@ use crossterm::{
 };
 use ratatui::{
   backend::{Backend, CrosstermBackend},
-  widgets::{Block, Borders},
+  style::Color,
+  widgets::{canvas::Canvas, Block, Borders},
   Frame, Terminal,
 };
-use std::{
-  io,
-  process::exit,
-  thread,
-  time::{Duration, Instant},
-};
+use std::io;
 
 use graphs::Graph;
 
@@ -55,7 +51,11 @@ impl App {
   {
     let size = f.size();
     let block = Block::default().title(self.title.as_str()).borders(Borders::ALL);
-    f.render_widget(block, size);
+    let canvas = Canvas::default()
+      .block(block)
+      .background_color(Color::White)
+      .paint(|ctx| {});
+    f.render_widget(canvas, size);
   }
 
   pub fn run<B>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()>
