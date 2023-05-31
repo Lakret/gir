@@ -6,7 +6,10 @@ use crossterm::{
 use ratatui::{
   backend::{Backend, CrosstermBackend},
   style::Color,
-  widgets::{canvas::Canvas, Block, Borders},
+  widgets::{
+    canvas::{Canvas, Rectangle},
+    Block, Borders,
+  },
   Frame, Terminal,
 };
 use std::io;
@@ -50,11 +53,24 @@ impl App {
     B: Backend,
   {
     let size = f.size();
-    let block = Block::default().title(self.title.as_str()).borders(Borders::ALL);
+
+    let title = format!("{} ({}x{})", self.title, size.width, size.height);
+
+    let block = Block::default().title(title.as_str()).borders(Borders::ALL);
     let canvas = Canvas::default()
       .block(block)
       .background_color(Color::White)
-      .paint(|ctx| {});
+      .x_bounds([0.0, 10.0])
+      .y_bounds([0.0, 10.0])
+      .paint(|ctx| {
+        ctx.draw(&Rectangle {
+          x: 1.0,
+          y: 1.0,
+          width: 1.0,
+          height: 1.0,
+          color: Color::Red,
+        });
+      });
     f.render_widget(canvas, size);
   }
 
@@ -68,7 +84,12 @@ impl App {
       if let Ok(event) = event::read() {
         match event {
           Event::Key(key_event) => match key_event.code {
+            // quit
             KeyCode::Char('q') => return Ok::<(), io::Error>(()),
+            // refresh
+            KeyCode::Char('r') => {
+              terminal.draw(|f| self.view(f))?;
+            }
             _ => {
               // dbg!(key_event.code);
               continue;
