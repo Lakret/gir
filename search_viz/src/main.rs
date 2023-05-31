@@ -96,7 +96,11 @@ impl App {
             }
           },
 
-          _ev => {
+          Event::Resize(_cols, _rows) => {
+            terminal.draw(|f| self.view(f))?;
+          }
+
+          _ => {
             // dbg!(ev);
             continue;
           }
