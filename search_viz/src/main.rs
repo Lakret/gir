@@ -3,6 +3,7 @@ use crossterm::{
   execute,
   terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use rand::Rng;
 use ratatui::{
   backend::{Backend, CrosstermBackend},
   style::Color,
@@ -66,7 +67,7 @@ impl App {
         ctx.draw(&Rectangle {
           x: 1.0,
           y: 1.0,
-          width: 1.0,
+          width: rand::thread_rng().gen_range(1.0..8.0),
           height: 1.0,
           color: Color::Red,
         });

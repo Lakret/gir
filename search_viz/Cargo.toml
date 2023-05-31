@@ -9,3 +9,4 @@ edition = "2021"
 crossterm = "0.26.1"
 ratatui = "0.21.0"
 graphs = { path =  "../graphs" }
+rand = "0.8.5"
