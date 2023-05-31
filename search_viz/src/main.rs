@@ -6,7 +6,7 @@ use crossterm::{
 use ratatui::{
   backend::{Backend, CrosstermBackend},
   widgets::{Block, Borders},
-  Terminal,
+  Frame, Terminal,
 };
 use std::{
   io,
@@ -25,7 +25,8 @@ fn main() -> Result<(), io::Error> {
   let backend = CrosstermBackend::new(stdout);
   let mut terminal = Terminal::new(backend)?;
 
-  let res = run_app(&mut terminal);
+  let mut app = App::default();
+  let res = app.run(&mut terminal);
 
   // restore terminal
   disable_raw_mode()?;
@@ -35,32 +36,49 @@ fn main() -> Result<(), io::Error> {
   res
 }
 
-fn run_app<B>(terminal: &mut Terminal<B>) -> io::Result<()>
-where
-  B: Backend,
-{
-  terminal.draw(|f| {
-    let size = f.size();
-    let block = Block::default().title("Block").borders(Borders::ALL);
-    f.render_widget(block, size);
-  })?;
+struct App {
+  title: String,
+}
 
-  // Start a thread to discard any input events. Without handling events, the
-  // stdin buffer will fill up, and be read into the shell when the program exits.
-  loop {
-    if let Ok(event) = event::read() {
-      match event {
-        Event::Key(key_event) => match key_event.code {
-          KeyCode::Char('q') => return Ok::<(), io::Error>(()),
-          _ => {
-            // dbg!(key_event.code);
+impl Default for App {
+  fn default() -> App {
+    App {
+      title: "AoC 2016, Day 13".to_string(),
+    }
+  }
+}
+
+impl App {
+  fn view<B>(&self, f: &mut Frame<B>)
+  where
+    B: Backend,
+  {
+    let size = f.size();
+    let block = Block::default().title(self.title.as_str()).borders(Borders::ALL);
+    f.render_widget(block, size);
+  }
+
+  pub fn run<B>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()>
+  where
+    B: Backend,
+  {
+    terminal.draw(|f| self.view(f))?;
+
+    loop {
+      if let Ok(event) = event::read() {
+        match event {
+          Event::Key(key_event) => match key_event.code {
+            KeyCode::Char('q') => return Ok::<(), io::Error>(()),
+            _ => {
+              // dbg!(key_event.code);
+              continue;
+            }
+          },
+
+          _ev => {
+            // dbg!(ev);
             continue;
           }
-        },
-
-        _ev => {
-          // dbg!(ev);
-          continue;
         }
       }
     }
