@@ -1,19 +1,14 @@
-use crossterm::{
-  event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-  execute,
-  terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
+use crossterm::event;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event, KeyCode};
+use crossterm::execute;
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use rand::Rng;
-use ratatui::{
-  backend::{Backend, CrosstermBackend},
-  style::Color,
-  widgets::{
-    canvas::{Canvas, Rectangle},
-    Block, Borders,
-  },
-  Frame, Terminal,
-};
-use std::io;
+use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::style::Color;
+use ratatui::widgets::canvas::{Canvas, Line, Points, Rectangle};
+use ratatui::widgets::{Block, Borders};
+use ratatui::{Frame, Terminal};
+use std::{array, io};
 
 use graphs::Graph;
 
@@ -60,16 +55,39 @@ impl App {
     let block = Block::default().title(title.as_str()).borders(Borders::ALL);
     let canvas = Canvas::default()
       .block(block)
-      .background_color(Color::White)
+      .background_color(Color::Gray)
       .x_bounds([0.0, 10.0])
       .y_bounds([0.0, 10.0])
       .paint(|ctx| {
-        ctx.draw(&Rectangle {
-          x: 1.0,
-          y: 1.0,
-          width: rand::thread_rng().gen_range(1.0..8.0),
-          height: 1.0,
-          color: Color::Red,
+        // ctx.draw(&Rectangle {
+        //   x: 1.0,
+        //   y: 1.0,
+        //   width: rand::thread_rng().gen_range(1.0..8.0),
+        //   height: 1.0,
+        //   color: Color::Red,
+        // });
+
+        let mut filled_rect = [(0.0, 0.0); 6 * 5];
+        let mut idx = 0;
+        for x in 2..(2 + 6) {
+          for y in 2..(2 + 5) {
+            filled_rect[idx] = (x as f64, y as f64);
+            idx += 1;
+          }
+        }
+
+        ctx.draw(&Points {
+          // coords: &[(2.0, 4.0), (4.0, 2.0), (6.0, 6.0)],
+          coords: &filled_rect,
+          color: Color::Yellow,
+        });
+
+        ctx.draw(&Line {
+          x1: 1.0,
+          y1: 1.5,
+          x2: 5.0,
+          y2: 8.0,
+          color: Color::Blue,
         });
       });
     f.render_widget(canvas, size);
