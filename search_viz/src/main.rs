@@ -67,12 +67,15 @@ impl App {
         //   color: Color::Red,
         // });
 
-        let mut filled_rect = [(0.0, 0.0); 6 * 5];
+        let mut filled_rect = [(0.0, 0.0); 6 * 5 * 1000];
         let mut idx = 0;
-        for x in 2..(2 + 6) {
-          for y in 2..(2 + 5) {
-            filled_rect[idx] = (x as f64, y as f64);
-            idx += 1;
+        let step = 1.0 / 1000.0;
+        for x in 2..8 {
+          for y in 2..7 {
+            for part in 0..1000 {
+              filled_rect[idx] = (x as f64 + step * part as f64, y as f64 + step * part as f64);
+              idx += 1;
+            }
           }
         }
 
