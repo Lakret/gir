@@ -86,7 +86,7 @@ impl eframe::App for TemplateApp {
     });
 
     egui::SidePanel::left("side_panel").show(ctx, |ui| {
-      ui.heading("Side Panel kekeke");
+      ui.heading("Side Panel");
 
       ui.horizontal(|ui| {
         ui.label("Write something: ");

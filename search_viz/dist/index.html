@@ -8,10 +8,9 @@
   <title>eframe template</title>
 
   <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-  <script type="module">import init from '/search_viz-12c73090b4f8d4ff.js';init('/search_viz-12c73090b4f8d4ff_bg.wasm');</script>
+  <script type="module">import init from '/search_viz-78d4a39a468e8bda.js';init('/search_viz-78d4a39a468e8bda_bg.wasm');</script>
   <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
   <base href="/">
-  
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#404040">
 
@@ -101,24 +100,13 @@
     }
   </style>
 
-<link rel="preload" href="/search_viz-12c73090b4f8d4ff_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/search_viz-12c73090b4f8d4ff.js"></head>
+<link rel="preload" href="/search_viz-78d4a39a468e8bda_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/search_viz-78d4a39a468e8bda.js"></head>
 
 <body>
   <!-- The WASM code will resize the canvas dynamically -->
   <!-- the id is hardcoded in main.rs . so, make sure both match. -->
   <canvas id="the_canvas_id"></canvas>
-
-  <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
-  <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
-  <script>
-    // We disable caching during development so that we always view the latest version.
-    if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js');
-      });
-    }
-  </script>
 
 
 <script>(function () {
