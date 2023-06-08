@@ -1,21 +1,18 @@
 // use rand::Rng;
-use std::io;
+use std::f32::consts::TAU;
 
+use egui::{vec2, Color32, Pos2, Rgba, Sense, Stroke, Vec2};
 use graphs::Graph;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
   // Log to stdout (if you run with `RUST_LOG=debug`).
-
-  use eframe::Renderer;
   tracing_subscriber::fmt::init();
 
-  let mut native_options = eframe::NativeOptions::default();
-  // native_options.renderer = Renderer::Wgpu;
-
+  let native_options = eframe::NativeOptions::default();
   eframe::run_native(
-    "eframe template",
+    "GIR: Graph Search Examples",
     native_options,
     Box::new(|cc| Box::new(TemplateApp::new(cc))),
   )
@@ -24,17 +21,16 @@ fn main() -> eframe::Result<()> {
 // when compiling to web using trunk.
 #[cfg(target_arch = "wasm32")]
 fn main() {
-  // Make sure panics are logged using `console.error`.
+  // make sure panics are logged using `console.error`
   console_error_panic_hook::set_once();
-
-  // Redirect tracing to console.log and friends:
+  // redirect tracing to console.log and friends
   tracing_wasm::set_as_global_default();
 
   let web_options = eframe::WebOptions::default();
-
   wasm_bindgen_futures::spawn_local(async {
+    // attaches canvas to the hardcoded id in the html
     eframe::start_web(
-      "the_canvas_id", // hardcode it
+      "the_canvas_id",
       web_options,
       Box::new(|cc| Box::new(TemplateApp::new(cc))),
     )
@@ -72,24 +68,7 @@ impl eframe::App for TemplateApp {
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
     let Self { label, value } = self;
 
-    // Examples of how to create different panels and windows.
-    // Pick whichever suits you.
-    // Tip: a good default choice is to just keep the `CentralPanel`.
-    // For inspiration and more examples, go to https://emilk.github.io/egui
-
-    #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
-    egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-      // The top panel is often a good place for a menu bar:
-      egui::menu::bar(ui, |ui| {
-        ui.menu_button("File", |ui| {
-          if ui.button("Quit").clicked() {
-            _frame.close();
-          }
-        });
-      });
-    });
-
-    egui::SidePanel::left("side_panel").show(ctx, |ui| {
+    egui::SidePanel::right("Try Your Input").show(ctx, |ui| {
       ui.heading("Side Panel");
 
       ui.horizontal(|ui| {
@@ -112,13 +91,7 @@ impl eframe::App for TemplateApp {
           ui.label(".");
         });
       });
-    });
 
-    egui::CentralPanel::default().show(ctx, |ui| {
-      // The central panel the region left after adding TopPanel's and SidePanel's
-
-      ui.heading("eframe template");
-      ui.hyperlink("https://github.com/emilk/eframe_template");
       ui.add(egui::github_link_file!(
         "https://github.com/emilk/eframe_template/blob/master/",
         "Source code yo."
@@ -126,13 +99,21 @@ impl eframe::App for TemplateApp {
       egui::warn_if_debug_build(ui);
     });
 
-    if false {
-      egui::Window::new("Window").show(ctx, |ui| {
-        ui.label("Windows can be moved by dragging them.");
-        ui.label("They are automatically sized based on contents.");
-        ui.label("You can turn on resizing and scrolling if you like.");
-        ui.label("You would normally choose either panels OR windows.");
-      });
-    }
+    egui::CentralPanel::default().show(ctx, |ui| {
+      ui.heading("Breadth-First Search Demo");
+      ui.hyperlink("https://github.com/emilk/eframe_template");
+
+      let (response, painter) = ui.allocate_painter(Vec2::splat(128.0), Sense::hover());
+
+      let rect = response.rect;
+      let c = rect.center();
+      let r = rect.width() / 2.0 - 5.0;
+      let color = Color32::from_rgb(255, 255, 0);
+      let stroke = Stroke::new(3.0, color);
+      painter.circle_stroke(c, r, stroke);
+      painter.line_segment([c - vec2(0.0, r), c + vec2(0.0, r)], stroke);
+      painter.line_segment([c, c + r * Vec2::angled(TAU * 1.0 / 8.0)], stroke);
+      painter.line_segment([c, c + r * Vec2::angled(TAU * 3.0 / 8.0)], stroke);
+    });
   }
 }
