@@ -111,9 +111,29 @@ impl eframe::App for TemplateApp {
       let color = Color32::from_rgb(255, 255, 0);
       let stroke = Stroke::new(3.0, color);
       painter.circle_stroke(c, r, stroke);
-      painter.line_segment([c - vec2(0.0, r), c + vec2(0.0, r)], stroke);
-      painter.line_segment([c, c + r * Vec2::angled(TAU * 1.0 / 8.0)], stroke);
-      painter.line_segment([c, c + r * Vec2::angled(TAU * 3.0 / 8.0)], stroke);
+      painter.line_segment(
+        [c - vec2(0.0, r), c + vec2(0.0, r)],
+        Stroke {
+          color: Color32::from_rgb(0, 255, 255),
+          ..stroke
+        },
+      );
+      painter.line_segment(
+        [c, c + r * Vec2::angled(TAU * 1.0 / 8.0)],
+        Stroke {
+          color: Color32::from_rgb(0, 128, 128),
+          ..stroke
+        },
+      );
+      painter.line_segment(
+        [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
+        Stroke {
+          color: Color32::from_rgb(0, 128, 128),
+          ..stroke
+        },
+      );
+
+      ui.heading(format!("c = {c:?}, r = {r:?}"));
     });
   }
 }
