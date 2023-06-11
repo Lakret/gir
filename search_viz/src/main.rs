@@ -1,7 +1,7 @@
 // use rand::Rng;
 use std::f32::consts::TAU;
 
-use egui::{vec2, Color32, FontId, Frame, Pos2, Rgba, Sense, Stroke, TextStyle, Vec2};
+use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Stroke, TextStyle, Vec2};
 use graphs::Graph;
 
 // When compiling natively:
@@ -78,7 +78,11 @@ impl eframe::App for TemplateApp {
     let Self { label, value } = self;
 
     egui::CentralPanel::default()
-      .frame(Frame::default().fill(Color32::from_rgb(20, 0, 50)))
+      .frame(
+        Frame::default()
+          .fill(Color32::from_rgb(20, 0, 50))
+          .inner_margin(Margin::same(20.0)),
+      )
       .show(ctx, |ui| {
         // let mut visuals = ui.visuals_mut();
         // visuals.override_text_color = Some(Color32::from_rgb(255, 255, 255));
