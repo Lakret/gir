@@ -1,7 +1,7 @@
 // use rand::Rng;
 use std::f32::consts::TAU;
 
-use egui::{vec2, Color32, Pos2, Rgba, Sense, Stroke, Vec2};
+use egui::{vec2, Color32, FontId, Frame, Pos2, Rgba, Sense, Stroke, TextStyle, Vec2};
 use graphs::Graph;
 
 // When compiling natively:
@@ -55,9 +55,18 @@ impl Default for TemplateApp {
 
 impl TemplateApp {
   /// Called once before the first frame.
-  pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-    // This is also where you can customize the look and feel of egui using
-    // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+  pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    cc.egui_ctx.set_visuals(egui::Visuals {
+      override_text_color: Some(Color32::from_rgb(255, 255, 255)),
+      ..egui::Visuals::dark()
+    });
+
+    let mut style = (*cc.egui_ctx.style()).clone();
+    for (_text_style, font_id) in style.text_styles.iter_mut() {
+      font_id.size *= 1.5;
+    }
+    cc.egui_ctx.set_style(style.clone());
+
     Default::default()
   }
 }
@@ -68,72 +77,73 @@ impl eframe::App for TemplateApp {
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
     let Self { label, value } = self;
 
-    egui::SidePanel::right("Try Your Input").show(ctx, |ui| {
-      ui.heading("Side Panel");
+    egui::CentralPanel::default()
+      .frame(Frame::default().fill(Color32::from_rgb(20, 0, 50)))
+      .show(ctx, |ui| {
+        // let mut visuals = ui.visuals_mut();
+        // visuals.override_text_color = Some(Color32::from_rgb(255, 255, 255));
+        // visuals.window_fill = Color32::from_rgb(100, 0, 0);
 
-      ui.horizontal(|ui| {
-        ui.label("Write something: ");
-        ui.text_edit_singleline(label);
-      });
+        ui.heading("Breadth-First and Depth-First Graph Search Algorithms Demo");
+        // ui.hyperlink("https://github.com/emilk/eframe_template");
 
-      ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-      if ui.button("Increment").clicked() {
-        *value += 1.0;
-      }
-
-      ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
         ui.horizontal(|ui| {
-          ui.spacing_mut().item_spacing.x = 0.0;
-          ui.label("powered by ");
-          ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-          ui.label(" and ");
-          ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/crates/eframe");
-          ui.label(".");
+          ui.label("Write something: ");
+          ui.text_edit_singleline(label);
         });
+
+        ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
+        if ui.button("Increment").clicked() {
+          *value += 1.0;
+        }
+
+        // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+        //   ui.horizontal(|ui| {
+        //     ui.spacing_mut().item_spacing.x = 0.0;
+        //     ui.label("powered by ");
+        //     ui.hyperlink_to("egui", "https://github.com/emilk/egui");
+        //     ui.label(" and ");
+        //     ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/crates/eframe");
+        //     ui.label(".");
+        //   });
+        // });
+        //
+        // ui.add(egui::github_link_file!(
+        //   "https://github.com/emilk/eframe_template/blob/master/",
+        //   "Source code yo."
+        // ));
+
+        let (response, painter) = ui.allocate_painter(Vec2::splat(128.0), Sense::hover());
+
+        let rect = response.rect;
+        let c = rect.center();
+        let r = rect.width() / 2.0 - 5.0;
+        let color = Color32::from_rgb(255, 255, 0);
+        let stroke = Stroke::new(3.0, color);
+        painter.circle_stroke(c, r, stroke);
+        painter.line_segment(
+          [c - vec2(0.0, r), c + vec2(0.0, r)],
+          Stroke {
+            color: Color32::from_rgb(0, 255, 255),
+            ..stroke
+          },
+        );
+        painter.line_segment(
+          [c, c + r * Vec2::angled(TAU * 1.0 / 8.0)],
+          Stroke {
+            color: Color32::from_rgb(0, 128, 128),
+            ..stroke
+          },
+        );
+        painter.line_segment(
+          [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
+          Stroke {
+            color: Color32::from_rgb(0, 128, 128),
+            ..stroke
+          },
+        );
+
+        ui.heading(format!("c = {c:?}, r = {r:?}"));
       });
-
-      ui.add(egui::github_link_file!(
-        "https://github.com/emilk/eframe_template/blob/master/",
-        "Source code yo."
-      ));
-      egui::warn_if_debug_build(ui);
-    });
-
-    egui::CentralPanel::default().show(ctx, |ui| {
-      ui.heading("Breadth-First Search Demo");
-      ui.hyperlink("https://github.com/emilk/eframe_template");
-
-      let (response, painter) = ui.allocate_painter(Vec2::splat(128.0), Sense::hover());
-
-      let rect = response.rect;
-      let c = rect.center();
-      let r = rect.width() / 2.0 - 5.0;
-      let color = Color32::from_rgb(255, 255, 0);
-      let stroke = Stroke::new(3.0, color);
-      painter.circle_stroke(c, r, stroke);
-      painter.line_segment(
-        [c - vec2(0.0, r), c + vec2(0.0, r)],
-        Stroke {
-          color: Color32::from_rgb(0, 255, 255),
-          ..stroke
-        },
-      );
-      painter.line_segment(
-        [c, c + r * Vec2::angled(TAU * 1.0 / 8.0)],
-        Stroke {
-          color: Color32::from_rgb(0, 128, 128),
-          ..stroke
-        },
-      );
-      painter.line_segment(
-        [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
-        Stroke {
-          color: Color32::from_rgb(0, 128, 128),
-          ..stroke
-        },
-      );
-
-      ui.heading(format!("c = {c:?}, r = {r:?}"));
-    });
   }
 }
