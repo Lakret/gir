@@ -1,7 +1,7 @@
 // use rand::Rng;
 use std::f32::consts::TAU;
 
-use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Stroke, TextStyle, Vec2};
+use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Stroke, TextEdit, TextStyle, Vec2};
 use graphs::Graph;
 
 // When compiling natively:
@@ -58,6 +58,7 @@ impl TemplateApp {
   pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
     cc.egui_ctx.set_visuals(egui::Visuals {
       override_text_color: Some(Color32::from_rgb(255, 255, 255)),
+      extreme_bg_color: Color32::from_rgb(50, 0, 125),
       ..egui::Visuals::dark()
     });
 
@@ -93,7 +94,7 @@ impl eframe::App for TemplateApp {
 
         ui.horizontal(|ui| {
           ui.label("Write something: ");
-          ui.text_edit_singleline(label);
+          ui.add(TextEdit::singleline(label).margin(vec2(10.0, 6.0)));
         });
 
         ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
@@ -147,7 +148,7 @@ impl eframe::App for TemplateApp {
           },
         );
 
-        ui.heading(format!("c = {c:?}, r = {r:?}"));
+        ui.label(format!("c = {c:?}, r = {r:?}"));
       });
   }
 }
