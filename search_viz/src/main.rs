@@ -6,6 +6,7 @@ use std::{
 };
 
 use egui::{
+  style::{WidgetVisuals, Widgets},
   vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, Sense, Separator, Shape, Stroke, TextEdit, TextStyle,
   Vec2,
 };
@@ -53,7 +54,7 @@ fn main() {
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserInput {
   fav_number: String,
-  levels: String,
+  levels: u32,
   start_x: String,
   start_y: String,
   goal_x: String,
@@ -71,7 +72,6 @@ pub struct Validated {
 impl UserInput {
   fn validate(&self) -> Result<Validated, Box<dyn Error>> {
     let fav_number = self.fav_number.parse::<u32>().map_err(|err| err.to_string())?;
-    let levels = self.levels.parse::<u32>().map_err(|err| err.to_string())?;
     let start = Pos {
       x: self.start_x.parse::<u32>().map_err(|err| err.to_string())?,
       y: self.start_y.parse::<u32>().map_err(|err| err.to_string())?,
@@ -83,7 +83,7 @@ impl UserInput {
 
     Ok(Validated {
       fav_number,
-      levels,
+      levels: self.levels,
       start,
       goal,
     })
@@ -100,7 +100,7 @@ impl Default for TemplateApp {
   fn default() -> Self {
     let user_input = UserInput {
       fav_number: "1350".to_string(),
-      levels: "20".to_string(),
+      levels: 20,
       start_x: "1".to_string(),
       start_y: "1".to_string(),
       goal_x: "7".to_string(),
@@ -115,16 +115,25 @@ impl Default for TemplateApp {
 impl TemplateApp {
   /// Called once before the first frame.
   pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    let default_dark_visuals = egui::Visuals::dark();
     cc.egui_ctx.set_visuals(egui::Visuals {
       override_text_color: Some(Color32::from_rgb(255, 255, 255)),
       extreme_bg_color: Color32::from_rgb(50, 0, 125),
-      ..egui::Visuals::dark()
+      widgets: Widgets {
+        inactive: WidgetVisuals {
+          bg_fill: Color32::from_rgb(100, 0, 175),
+          ..default_dark_visuals.widgets.inactive
+        },
+        ..default_dark_visuals.widgets
+      },
+      ..default_dark_visuals
     });
 
     let mut style = (*cc.egui_ctx.style()).clone();
     for (_text_style, font_id) in style.text_styles.iter_mut() {
       font_id.size *= 1.5;
     }
+    style.spacing.slider_width = 400.0;
     cc.egui_ctx.set_style(style.clone());
 
     Default::default()
@@ -171,10 +180,11 @@ impl eframe::App for TemplateApp {
           fav_number_input = Some(ui.add(TextEdit::singleline(&mut user_input.fav_number).margin(vec2(10.0, 6.0))));
         });
 
-        ui.horizontal(|ui| {
-          ui.label("Levels to Draw: ");
-          ui.add(TextEdit::singleline(&mut user_input.levels));
-        });
+        let slider = ui.add(
+          egui::Slider::new(&mut user_input.levels, 1..=200)
+            .text("Levels to Draw")
+            .integer(),
+        );
 
         match user_input.validate() {
           Ok(new_validated) => {
@@ -192,51 +202,54 @@ impl eframe::App for TemplateApp {
           self.validated.fav_number, self.validated.levels,
         ));
 
-        let size = 20.0;
-        let (response, painter) = ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * size), Sense::hover());
+        egui::ScrollArea::both().show(ui, |ui| {
+          let size = 20.0;
+          let (response, painter) =
+            ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * size), Sense::hover());
 
-        let rect = response.rect;
-        let wall_color = Color32::from_rgb(125, 0, 255);
-        let path_color = Color32::from_rgb(255, 255, 0);
-        let goal_color = Color32::from_rgb(0, 255, 0);
-        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
+          let rect = response.rect;
+          let wall_color = Color32::from_rgb(125, 0, 255);
+          let path_color = Color32::from_rgb(255, 255, 0);
+          let goal_color = Color32::from_rgb(0, 255, 0);
+          painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
 
-        let min_x = *rect.x_range().start();
-        let min_y = *rect.y_range().start();
-        for y in 0..self.validated.levels {
-          for x in 0..self.validated.levels {
-            let pos = bfs::Pos { x, y };
-            let screen_min_x = x as f32 * size + min_x;
-            let screen_max_x = (x + 1) as f32 * size + min_x;
-            let screen_min_y = y as f32 * size + min_y;
-            let screen_max_y = (y + 1) as f32 * size + min_y;
+          let min_x = *rect.x_range().start();
+          let min_y = *rect.y_range().start();
+          for y in 0..self.validated.levels {
+            for x in 0..self.validated.levels {
+              let pos = bfs::Pos { x, y };
+              let screen_min_x = x as f32 * size + min_x;
+              let screen_max_x = (x + 1) as f32 * size + min_x;
+              let screen_min_y = y as f32 * size + min_y;
+              let screen_max_y = (y + 1) as f32 * size + min_y;
 
-            let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
-            if !pos.is_open(self.validated.fav_number) {
-              painter.rect_filled(cell, 0.0, wall_color);
-            }
+              let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
+              if !pos.is_open(self.validated.fav_number) {
+                painter.rect_filled(cell, 0.0, wall_color);
+              }
 
-            if self.validated.start == pos {
-              painter.circle_filled(cell.center(), size / 2.0, path_color);
-            }
+              if self.validated.start == pos {
+                painter.circle_filled(cell.center(), size / 2.0, path_color);
+              }
 
-            if self.validated.goal == pos {
-              // TODO: debug why this impl is not displaying a grid over the goal field
-              // let mut mesh = Mesh::default();
-              // for offset in 0..(size as u32) {
-              //   if offset % 2 != 0 {
-              //     let point_x = screen_min_x + offset as f32;
-              //     let point_y = screen_min_y + offset as f32;
-              //     let pixel = Rect::from_x_y_ranges(point_x..=point_x, point_y..=point_y);
-              //     mesh.add_colored_rect(pixel, goal_color);
-              //   }
-              // }
-              // painter.add(Shape::Mesh(mesh));
+              if self.validated.goal == pos {
+                // TODO: debug why this impl is not displaying a grid over the goal field
+                // let mut mesh = Mesh::default();
+                // for offset in 0..(size as u32) {
+                //   if offset % 2 != 0 {
+                //     let point_x = screen_min_x + offset as f32;
+                //     let point_y = screen_min_y + offset as f32;
+                //     let pixel = Rect::from_x_y_ranges(point_x..=point_x, point_y..=point_y);
+                //     mesh.add_colored_rect(pixel, goal_color);
+                //   }
+                // }
+                // painter.add(Shape::Mesh(mesh));
 
-              painter.rect_filled(cell, 4.0, goal_color);
+                painter.rect_filled(cell, 4.0, goal_color);
+              }
             }
           }
-        }
+        });
 
         // TODO: animated path to goal
 
@@ -250,7 +263,6 @@ impl eframe::App for TemplateApp {
 
         // ui.label(format!("rect = {rect:?}"));
 
-        // ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
         // if ui.button("Increment").clicked() {
         //   *value += 1.0;
         // }
