@@ -1,12 +1,19 @@
 // use rand::Rng;
-use std::{error::Error, f32::consts::TAU};
+use std::{
+  error::Error,
+  f32::consts::TAU,
+  ops::{Range, RangeFull},
+};
 
 use egui::{
-  vec2, Color32, FontId, Frame, Margin, Pos2, Rect, Rgba, Sense, Separator, Stroke, TextEdit, TextStyle, Vec2,
+  vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, Sense, Separator, Shape, Stroke, TextEdit, TextStyle,
+  Vec2,
 };
 use graphs::Graph;
 
 mod bfs;
+
+use bfs::*;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -47,19 +54,39 @@ fn main() {
 pub struct UserInput {
   fav_number: String,
   levels: String,
+  start_x: String,
+  start_y: String,
+  goal_x: String,
+  goal_y: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Validated {
   fav_number: u32,
   levels: u32,
+  start: Pos,
+  goal: Pos,
 }
 
 impl UserInput {
   fn validate(&self) -> Result<Validated, Box<dyn Error>> {
     let fav_number = self.fav_number.parse::<u32>().map_err(|err| err.to_string())?;
     let levels = self.levels.parse::<u32>().map_err(|err| err.to_string())?;
-    Ok(Validated { fav_number, levels })
+    let start = Pos {
+      x: self.start_x.parse::<u32>().map_err(|err| err.to_string())?,
+      y: self.start_y.parse::<u32>().map_err(|err| err.to_string())?,
+    };
+    let goal = Pos {
+      x: self.goal_x.parse::<u32>().map_err(|err| err.to_string())?,
+      y: self.goal_y.parse::<u32>().map_err(|err| err.to_string())?,
+    };
+
+    Ok(Validated {
+      fav_number,
+      levels,
+      start,
+      goal,
+    })
   }
 }
 
@@ -74,6 +101,10 @@ impl Default for TemplateApp {
     let user_input = UserInput {
       fav_number: "1350".to_string(),
       levels: "20".to_string(),
+      start_x: "1".to_string(),
+      start_y: "1".to_string(),
+      goal_x: "7".to_string(),
+      goal_y: "4".to_string(),
     };
     let validated = user_input.validate().unwrap();
 
@@ -167,6 +198,7 @@ impl eframe::App for TemplateApp {
         let rect = response.rect;
         let wall_color = Color32::from_rgb(125, 0, 255);
         let path_color = Color32::from_rgb(255, 255, 0);
+        let goal_color = Color32::from_rgb(0, 255, 0);
         painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
 
         let min_x = *rect.x_range().start();
@@ -174,16 +206,34 @@ impl eframe::App for TemplateApp {
         for y in 0..self.validated.levels {
           for x in 0..self.validated.levels {
             let pos = bfs::Pos { x, y };
-            let cell = Rect::from_x_y_ranges(
-              (x as f32 * size + min_x)..=((x + 1) as f32 * size + min_x),
-              (y as f32 * size + min_y)..=((y + 1) as f32 * size + min_y),
-            );
+            let screen_min_x = x as f32 * size + min_x;
+            let screen_max_x = (x + 1) as f32 * size + min_x;
+            let screen_min_y = y as f32 * size + min_y;
+            let screen_max_y = (y + 1) as f32 * size + min_y;
+
+            let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
             if !pos.is_open(self.validated.fav_number) {
               painter.rect_filled(cell, 0.0, wall_color);
             }
 
-            if x == 1 && y == 1 {
+            if self.validated.start == pos {
               painter.circle_filled(cell.center(), size / 2.0, path_color);
+            }
+
+            if self.validated.goal == pos {
+              // TODO: debug why this impl is not displaying a grid over the goal field
+              // let mut mesh = Mesh::default();
+              // for offset in 0..(size as u32) {
+              //   if offset % 2 != 0 {
+              //     let point_x = screen_min_x + offset as f32;
+              //     let point_y = screen_min_y + offset as f32;
+              //     let pixel = Rect::from_x_y_ranges(point_x..=point_x, point_y..=point_y);
+              //     mesh.add_colored_rect(pixel, goal_color);
+              //   }
+              // }
+              // painter.add(Shape::Mesh(mesh));
+
+              painter.rect_filled(cell, 4.0, goal_color);
             }
           }
         }
