@@ -1,7 +1,7 @@
 // use rand::Rng;
-use std::f32::consts::TAU;
+use std::{error::Error, f32::consts::TAU};
 
-use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Stroke, TextEdit, TextStyle, Vec2};
+use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Separator, Stroke, TextEdit, TextStyle, Vec2};
 use graphs::Graph;
 
 // When compiling natively:
@@ -39,17 +39,41 @@ fn main() {
   });
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct UserInput {
+  fav_number: String,
+  levels: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Validated {
+  fav_number: u32,
+  levels: u32,
+}
+
+impl UserInput {
+  fn validate(&self) -> Result<Validated, Box<dyn Error>> {
+    let fav_number = self.fav_number.parse::<u32>().map_err(|err| err.to_string())?;
+    let levels = self.levels.parse::<u32>().map_err(|err| err.to_string())?;
+    Ok(Validated { fav_number, levels })
+  }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TemplateApp {
-  label: String,
-  value: f32,
+  user_input: UserInput,
+  validated: Validated,
 }
 
 impl Default for TemplateApp {
   fn default() -> Self {
-    Self {
-      label: "Hello World!".to_owned(),
-      value: 2.7,
-    }
+    let user_input = UserInput {
+      fav_number: "1350".to_string(),
+      levels: "40".to_string(),
+    };
+    let validated = user_input.validate().unwrap();
+
+    Self { user_input, validated }
   }
 }
 
@@ -76,7 +100,15 @@ impl eframe::App for TemplateApp {
   /// Called each time the UI needs repainting, which may be many times per second.
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-    let Self { label, value } = self;
+    let TemplateApp {
+      user_input: ref mut user_input,
+      //  @ UserInput {
+      //   fav_number: user_input_fav_number,
+      // },
+      validated: ref mut validated, // @ Validated {
+                                    //   fav_number: validated_fav_number,
+                                    // },
+    } = self;
 
     egui::CentralPanel::default()
       .frame(
@@ -85,22 +117,52 @@ impl eframe::App for TemplateApp {
           .inner_margin(Margin::same(20.0)),
       )
       .show(ctx, |ui| {
-        // let mut visuals = ui.visuals_mut();
-        // visuals.override_text_color = Some(Color32::from_rgb(255, 255, 255));
-        // visuals.window_fill = Color32::from_rgb(100, 0, 0);
-
         ui.heading("Breadth-First and Depth-First Graph Search Algorithms Demo");
-        // ui.hyperlink("https://github.com/emilk/eframe_template");
-
+        ui.label("This demo allows you to try out 2 example Advent of Code problems for bfs and dfs respectively.");
         ui.horizontal(|ui| {
-          ui.label("Write something: ");
-          ui.add(TextEdit::singleline(label).margin(vec2(10.0, 6.0)));
+          ui.label("You can find the source code for this example ");
+          ui.hyperlink_to("here", "https://github.com/lakret/gir");
+          ui.label(".");
+        });
+        ui.add(Separator::default().spacing(20.0));
+
+        ui.heading("Breadth-First Search Example: Advent of Code 2016, Day 13");
+        ui.hyperlink_to("The Task", "https://adventofcode.com/2016/day/13");
+        ui.add_space(15.0);
+
+        let mut fav_number_input = None;
+        ui.horizontal(|ui| {
+          ui.label("Office Designer's Favourite Number: ");
+          fav_number_input = Some(ui.add(TextEdit::singleline(&mut user_input.fav_number).margin(vec2(10.0, 6.0))));
         });
 
-        ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-        if ui.button("Increment").clicked() {
-          *value += 1.0;
+        ui.horizontal(|ui| {
+          ui.label("Levels to Draw: ");
+          ui.add(TextEdit::singleline(&mut user_input.levels));
+        });
+
+        match user_input.validate() {
+          Ok(new_validated) => {
+            self.validated = new_validated;
+            // TODO: redraw only on change
+          }
+          Err(msg) => {
+            // TODO: style and better messages (with field names)
+            ui.label(msg.to_string());
+          }
         }
+
+        ui.label(format!(
+          "The office for the given number {} with {} levels:",
+          self.validated.fav_number, self.validated.levels,
+        ));
+
+        // TODO: draw the office according to self.validated.{fav_number, levels}
+
+        // ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
+        // if ui.button("Increment").clicked() {
+        //   *value += 1.0;
+        // }
 
         // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
         //   ui.horizontal(|ui| {
