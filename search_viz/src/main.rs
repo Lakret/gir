@@ -1,8 +1,12 @@
 // use rand::Rng;
 use std::{error::Error, f32::consts::TAU};
 
-use egui::{vec2, Color32, FontId, Frame, Margin, Pos2, Rgba, Sense, Separator, Stroke, TextEdit, TextStyle, Vec2};
+use egui::{
+  vec2, Color32, FontId, Frame, Margin, Pos2, Rect, Rgba, Sense, Separator, Stroke, TextEdit, TextStyle, Vec2,
+};
 use graphs::Graph;
+
+mod bfs;
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -69,7 +73,7 @@ impl Default for TemplateApp {
   fn default() -> Self {
     let user_input = UserInput {
       fav_number: "1350".to_string(),
-      levels: "40".to_string(),
+      levels: "20".to_string(),
     };
     let validated = user_input.validate().unwrap();
 
@@ -157,7 +161,58 @@ impl eframe::App for TemplateApp {
           self.validated.fav_number, self.validated.levels,
         ));
 
-        // TODO: draw the office according to self.validated.{fav_number, levels}
+        let size = 20.0;
+        let (response, painter) = ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * size), Sense::hover());
+
+        let rect = response.rect;
+        let wall_color = Color32::from_rgb(125, 0, 255);
+        let path_color = Color32::from_rgb(255, 255, 0);
+        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
+
+        let min_x = *rect.x_range().start();
+        let min_y = *rect.y_range().start();
+        for y in 0..self.validated.levels {
+          for x in 0..self.validated.levels {
+            let pos = bfs::Pos { x, y };
+            let cell = Rect::from_x_y_ranges(
+              (x as f32 * size + min_x)..=((x + 1) as f32 * size + min_x),
+              (y as f32 * size + min_y)..=((y + 1) as f32 * size + min_y),
+            );
+            if !pos.is_open(self.validated.fav_number) {
+              painter.rect_filled(cell, 0.0, wall_color);
+            }
+
+            if x == 1 && y == 1 {
+              painter.circle_filled(cell.center(), size / 2.0, path_color);
+            }
+          }
+        }
+
+        // let stroke = Stroke::new(3.0, color);
+        // painter.circle_stroke(c, r, stroke);
+        // painter.line_segment(
+        //   [c - vec2(0.0, r), c + vec2(0.0, r)],
+        //   Stroke {
+        //     color: Color32::from_rgb(0, 255, 255),
+        //     ..stroke
+        //   },
+        // );
+        // painter.line_segment(
+        //   [c, c + r * Vec2::angled(TAU * 1.0 / 8.0)],
+        //   Stroke {
+        //     color: Color32::from_rgb(0, 128, 128),
+        //     ..stroke
+        //   },
+        // );
+        // painter.line_segment(
+        //   [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
+        //   Stroke {
+        //     color: Color32::from_rgb(0, 128, 128),
+        //     ..stroke
+        //   },
+        // );
+
+        // ui.label(format!("rect = {rect:?}"));
 
         // ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
         // if ui.button("Increment").clicked() {
@@ -179,38 +234,6 @@ impl eframe::App for TemplateApp {
         //   "https://github.com/emilk/eframe_template/blob/master/",
         //   "Source code yo."
         // ));
-
-        let (response, painter) = ui.allocate_painter(Vec2::splat(128.0), Sense::hover());
-
-        let rect = response.rect;
-        let c = rect.center();
-        let r = rect.width() / 2.0 - 5.0;
-        let color = Color32::from_rgb(255, 255, 0);
-        let stroke = Stroke::new(3.0, color);
-        painter.circle_stroke(c, r, stroke);
-        painter.line_segment(
-          [c - vec2(0.0, r), c + vec2(0.0, r)],
-          Stroke {
-            color: Color32::from_rgb(0, 255, 255),
-            ..stroke
-          },
-        );
-        painter.line_segment(
-          [c, c + r * Vec2::angled(TAU * 1.0 / 8.0)],
-          Stroke {
-            color: Color32::from_rgb(0, 128, 128),
-            ..stroke
-          },
-        );
-        painter.line_segment(
-          [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
-          Stroke {
-            color: Color32::from_rgb(0, 128, 128),
-            ..stroke
-          },
-        );
-
-        ui.label(format!("c = {c:?}, r = {r:?}"));
       });
   }
 }
