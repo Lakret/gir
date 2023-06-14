@@ -7,8 +7,8 @@ use std::{
 
 use egui::{
   style::{Selection, WidgetVisuals, Widgets},
-  vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, Sense, Separator, Shape, Stroke, TextEdit, TextStyle,
-  Vec2,
+  vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, RichText, Sense, Separator, Shape, Slider, Stroke,
+  TextEdit, TextStyle, Vec2,
 };
 use graphs::Graph;
 
@@ -116,7 +116,6 @@ impl TemplateApp {
   /// Called once before the first frame.
   pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
     let default_dark_visuals = egui::Visuals::dark();
-    // default visuals for the dark style are in .../egui-0.21.0/src/style.rs, impl Widgets, fn dark().
     cc.egui_ctx.set_visuals(egui::Visuals {
       override_text_color: Some(Color32::from_rgb(255, 255, 255)),
       extreme_bg_color: Color32::from_rgb(50, 0, 125),
@@ -178,17 +177,20 @@ impl eframe::App for TemplateApp {
           .inner_margin(Margin::same(20.0)),
       )
       .show(ctx, |ui| {
-        ui.heading("Breadth-First and Depth-First Graph Search Algorithms Demo");
-        ui.label("This demo allows you to try out 2 example Advent of Code problems for bfs and dfs respectively.");
-        ui.horizontal(|ui| {
-          ui.label("You can find the source code for this example ");
-          ui.hyperlink_to("here", "https://github.com/lakret/gir");
-          ui.label(".");
-        });
-        ui.add(Separator::default().spacing(20.0));
+        ui.collapsing(
+          RichText::new("Breadth-First and Depth-First Graph Search Algorithms Demo").heading(),
+          |ui| {
+            ui.label("This demo allows you to try out 2 example Advent of Code problems for bfs and dfs respectively.");
+            ui.horizontal(|ui| {
+              ui.label("You can find the source code for this example ");
+              ui.hyperlink_to("here", "https://github.com/lakret/gir");
+              ui.label(".");
+            });
+          },
+        );
 
-        ui.heading("Breadth-First Search Example: Advent of Code 2016, Day 13");
-        ui.hyperlink_to("The Task", "https://adventofcode.com/2016/day/13");
+        ui.heading("Breadth-First Search Example");
+        ui.hyperlink_to("Advent of Code 2016, Day 13", "https://adventofcode.com/2016/day/13");
         ui.add_space(15.0);
 
         let mut fav_number_input = None;
@@ -198,7 +200,7 @@ impl eframe::App for TemplateApp {
         });
 
         let slider = ui.add(
-          egui::Slider::new(&mut user_input.levels, 1..=200)
+          Slider::new(&mut user_input.levels, 1..=200)
             .text("Levels to Draw")
             .integer(),
         );
