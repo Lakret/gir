@@ -6,7 +6,7 @@ use std::{
 };
 
 use egui::{
-  style::{WidgetVisuals, Widgets},
+  style::{Selection, WidgetVisuals, Widgets},
   vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, Sense, Separator, Shape, Stroke, TextEdit, TextStyle,
   Vec2,
 };
@@ -116,16 +116,33 @@ impl TemplateApp {
   /// Called once before the first frame.
   pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
     let default_dark_visuals = egui::Visuals::dark();
+    // default visuals for the dark style are in .../egui-0.21.0/src/style.rs, impl Widgets, fn dark().
     cc.egui_ctx.set_visuals(egui::Visuals {
       override_text_color: Some(Color32::from_rgb(255, 255, 255)),
       extreme_bg_color: Color32::from_rgb(50, 0, 125),
       widgets: Widgets {
         inactive: WidgetVisuals {
-          bg_fill: Color32::from_rgb(100, 0, 175),
+          // TODO: set this only for the slider
+          // Color32::from_gray(60) is the default
+          bg_fill: Color32::from_rgb(60, 0, 120),
           ..default_dark_visuals.widgets.inactive
+        },
+        hovered: WidgetVisuals {
+          bg_fill: Color32::from_rgb(255, 100, 175),
+          ..default_dark_visuals.widgets.hovered
+        },
+        active: WidgetVisuals {
+          bg_fill: Color32::from_rgb(255, 100, 175),
+          ..default_dark_visuals.widgets.hovered
         },
         ..default_dark_visuals.widgets
       },
+      selection: Selection {
+        // slider "progress" color Color32::from_rgb(0, 92, 128) is default
+        bg_fill: Color32::from_rgb(255, 100, 175),
+        ..default_dark_visuals.selection
+      },
+      slider_trailing_fill: true,
       ..default_dark_visuals
     });
 
