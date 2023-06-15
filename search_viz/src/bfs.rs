@@ -29,9 +29,9 @@ impl Pos {
 }
 
 /// Searches for `goal` starting at `start` using `fav_number` to check for the walls.
-/// Returns `(parents, is_found)`, where `parents` is a map from a vertex to the vertex it was
-/// first reached from on a path from `start`, and `is_found` is `true` if the `goal` was found.
-pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> (HashMap<Pos, Pos>, bool) {
+/// Returns `parents` - a map from a vertex to the vertex it was first reached from on a path from `start`.
+/// If `goal` was found, it will be present as a key in `parents`.
+pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> HashMap<Pos, Pos> {
   let mut parents = HashMap::new();
   let mut queue = VecDeque::from(vec![start]);
   let mut explored = HashSet::new();
@@ -39,7 +39,7 @@ pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> (HashMap<Pos, Pos>, bool) 
 
   while let Some(curr) = queue.pop_front() {
     if curr == goal {
-      return (parents, true);
+      return parents;
     }
 
     for next in curr.adjacent().filter(|next| next.is_open(fav_number)) {
@@ -51,7 +51,7 @@ pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> (HashMap<Pos, Pos>, bool) 
     }
   }
 
-  (parents, false)
+  parents
 }
 
 /// Reconstructs path from `start` to `goal` using `parents` returned from `bfs`.
@@ -68,6 +68,41 @@ pub fn reconstruct_path(parents: HashMap<Pos, Pos>, goal: Pos) -> Vec<Pos> {
 
   path.reverse();
   path
+}
+
+pub fn p1(fav_number: u32, start: Pos, goal: Pos) -> Option<usize> {
+  let parents = bfs(fav_number, start, goal);
+  let path = reconstruct_path(parents, goal);
+
+  if path.len() > 0 {
+    Some(path.len())
+  } else {
+    None
+  }
+}
+
+/// This is a version of bfs where instead of searching for a goal we limit the depth of exploration
+/// and return the number of unique vertices encountered.
+pub fn bfs2(fav_number: u32, start: Pos, max_depth: usize) -> usize {
+  // queue now also saves per-vertex path depth
+  let mut queue = VecDeque::from(vec![(start, 0)]);
+  let mut explored = HashSet::new();
+  explored.insert(start);
+
+  while let Some((curr, depth)) = queue.pop_front() {
+    if depth >= max_depth {
+      return explored.len();
+    }
+
+    for next in curr.adjacent().filter(|next| next.is_open(fav_number)) {
+      if !explored.contains(&next) {
+        explored.insert(next);
+        queue.push_back((next, depth + 1));
+      }
+    }
+  }
+
+  explored.len()
 }
 
 #[cfg(test)]
@@ -109,8 +144,7 @@ mod test {
   #[test]
   fn bfs_and_reconstruct_path_test() {
     let goal = Pos { x: 7, y: 4 };
-    let (parents, is_found) = bfs(10, Pos { x: 1, y: 1 }, goal);
-    assert!(is_found);
+    let parents = bfs(10, Pos { x: 1, y: 1 }, goal);
 
     let path = reconstruct_path(parents, goal);
     assert_eq!(
@@ -130,5 +164,16 @@ mod test {
       ]
     );
     assert_eq!(path.len(), 11);
+  }
+
+  #[test]
+  fn p1_test() {
+    assert_eq!(p1(10, Pos { x: 1, y: 1 }, Pos { x: 7, y: 4 }), Some(11));
+    assert_eq!(p1(1350, Pos { x: 1, y: 1 }, Pos { x: 31, y: 39 }), Some(92));
+  }
+
+  #[test]
+  fn bfs2_test() {
+    assert_eq!(bfs2(1350, Pos { x: 1, y: 1 }, 50), 124);
   }
 }
