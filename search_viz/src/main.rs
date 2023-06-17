@@ -1,4 +1,5 @@
 // use rand::Rng;
+use std::collections::HashMap;
 use std::{
   error::Error,
   f32::consts::TAU,
@@ -96,11 +97,10 @@ pub struct TemplateApp {
   user_input: UserInput,
   validated: Validated,
   path: Vec<Pos>,
+  explored: HashMap<u32, Vec<Pos>>,
   time: Instant,
   animate_bfs: bool,
 }
-
-const MAX_TICKS: u32 = 100;
 
 impl Default for TemplateApp {
   fn default() -> Self {
@@ -113,21 +113,18 @@ impl Default for TemplateApp {
       goal_y: "39".to_string(),
     };
     let validated = user_input.validate().unwrap();
-    let path = path_from_validated(&validated);
+    let (path, explored) =
+      path_and_explored_by_generation_for_animation(validated.fav_number, validated.start, validated.goal);
 
     Self {
       user_input,
       validated,
       path,
+      explored,
       time: Instant::now(),
       animate_bfs: true,
     }
   }
-}
-
-fn path_from_validated(validated: &Validated) -> Vec<Pos> {
-  let parents = bfs::bfs(validated.fav_number, validated.start, validated.goal);
-  bfs::reconstruct_path(parents, validated.goal)
 }
 
 impl TemplateApp {
@@ -180,6 +177,7 @@ impl eframe::App for TemplateApp {
       ref mut user_input,
       ref mut validated,
       ref mut path,
+      ref mut explored,
       ref mut time,
       ref mut animate_bfs,
     } = self;
@@ -224,7 +222,13 @@ impl eframe::App for TemplateApp {
 
         match user_input.validate() {
           Ok(new_validated) => {
-            self.path = path_from_validated(&new_validated);
+            let (path, explored) = path_and_explored_by_generation_for_animation(
+              new_validated.fav_number,
+              new_validated.start,
+              new_validated.goal,
+            );
+            self.path = path;
+            self.explored = explored;
             self.validated = new_validated;
             // TODO: redraw only on change
           }
@@ -254,6 +258,7 @@ impl eframe::App for TemplateApp {
           let start_color = Color32::from_rgb(0, 0, 255);
           let goal_color = Color32::from_rgb(0, 255, 0);
           let path_color = Color32::from_rgb(255, 255, 0);
+          let explored_color = Color32::from_rgb(0, 50, 100);
           painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
 
           let min_x = *rect.x_range().start();
@@ -277,13 +282,22 @@ impl eframe::App for TemplateApp {
             }
           }
 
-          // TODO: add explored return from bfs & visualize explored cells along the path too
           if *animate_bfs {
-            let path_elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
-            for &pos in &self.path[..path_elements_to_show] {
+            // can be used for both path length and generation to show
+            let elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
+            for &pos in &self.path[..elements_to_show] {
               if pos != self.validated.start && pos != self.validated.goal {
                 let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
-                painter.rect_filled(cell, 4.0, path_color);
+                painter.rect_filled(cell, 6.0, path_color);
+              }
+            }
+
+            for generation in 0..(elements_to_show as u32) {
+              if let Some(positions) = self.explored.get(&generation) {
+                for &pos in positions {
+                  let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
+                  painter.rect_filled(cell, 0.0, explored_color);
+                }
               }
             }
           }

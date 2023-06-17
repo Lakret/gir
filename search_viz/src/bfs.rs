@@ -1,6 +1,8 @@
 //! AoC 2016, D13, the BFS Example.
 //!
 //! Solution, helper functions, and such.
+//! Note, that some functionality is duplicated because some code is used for the slides in the video,
+//! some for the animation, and the rest is reused across those + used to validate the solution in tests.
 use std::collections::{HashMap, HashSet, VecDeque};
 
 const ADJACENT_DELTA: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
@@ -103,6 +105,59 @@ pub fn bfs2(fav_number: u32, start: Pos, max_depth: usize) -> usize {
   }
 
   explored.len()
+}
+
+/// Performs the same as calling `bfs` and `reconstruct_path` in sequence, but also saves explored
+/// marked by "generation". Used for building the BFS animation.
+pub fn path_and_explored_by_generation_for_animation(
+  fav_number: u32,
+  start: Pos,
+  goal: Pos,
+) -> (Vec<Pos>, HashMap<u32, Vec<Pos>>) {
+  // bfs
+  let mut parents = HashMap::new();
+  let mut queue = VecDeque::from(vec![(start, 0)]);
+  // HashMap to store the explored generation
+  let mut explored = HashMap::new();
+  explored.insert(start, 0);
+
+  while let Some((curr, generation)) = queue.pop_front() {
+    if curr == goal {
+      break;
+    }
+
+    for next in curr.adjacent().filter(|next| next.is_open(fav_number)) {
+      if !explored.contains_key(&next) {
+        explored.insert(next, generation + 1);
+        parents.insert(next, curr);
+        queue.push_back((next, generation + 1));
+      }
+    }
+  }
+
+  // reconstruct_path
+  let mut path = vec![];
+  let mut curr = goal;
+
+  while let Some(&parent) = parents.get(&curr) {
+    path.push(parent);
+    curr = parent;
+  }
+
+  path.reverse();
+
+  // invert explored & remove path elements from it
+  let path_set: HashSet<Pos> = HashSet::from_iter(path.iter().cloned());
+  let mut inv_explored: HashMap<u32, Vec<Pos>> = HashMap::new();
+  for (pos, gen) in explored {
+    if !path_set.contains(&pos) {
+      inv_explored
+        .entry(gen)
+        .and_modify(|positions| positions.push(pos))
+        .or_insert(vec![pos]);
+    }
+  }
+  (path, inv_explored)
 }
 
 #[cfg(test)]
