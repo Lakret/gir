@@ -1,22 +1,19 @@
-// use rand::Rng;
 use std::collections::HashMap;
-use std::{
-  error::Error,
-  f32::consts::TAU,
-  ops::{Range, RangeFull},
-};
+use std::error::Error;
 
-use egui::{
-  style::{Selection, WidgetVisuals, Widgets},
-  vec2, Color32, FontId, Frame, Margin, Mesh, Pos2, Rect, Rgba, RichText, Sense, Separator, Shape, Slider, Stroke,
-  TextEdit, TextStyle, Vec2,
-};
-use graphs::Graph;
+use egui::style::{Selection, WidgetVisuals, Widgets};
+use egui::{vec2, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
 use instant::{Duration, Instant};
 
 mod bfs;
-
 use bfs::*;
+
+const CELL_SIZE: f32 = 20.0;
+const WALL_COLOR: Color32 = Color32::from_rgb(125, 0, 255);
+const START_COLOR: Color32 = Color32::from_rgb(0, 0, 255);
+const GOAL_COLOR: Color32 = Color32::from_rgb(0, 255, 0);
+const PATH_COLOR: Color32 = Color32::from_rgb(255, 255, 0);
+const EXPLORED_COLOR: Color32 = Color32::from_rgb(0, 50, 100);
 
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
@@ -106,7 +103,7 @@ impl Default for TemplateApp {
   fn default() -> Self {
     let user_input = UserInput {
       fav_number: "1350".to_string(),
-      levels: 42,
+      levels: 50,
       start_x: "1".to_string(),
       start_y: "1".to_string(),
       goal_x: "31".to_string(),
@@ -173,17 +170,8 @@ impl eframe::App for TemplateApp {
   /// Called each time the UI needs repainting, which may be many times per second.
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-    let TemplateApp {
-      ref mut user_input,
-      ref mut validated,
-      ref mut path,
-      ref mut explored,
-      ref mut time,
-      ref mut animate_bfs,
-    } = self;
-
     // each animation tick is 1/20 of a second = 50 milliseconds
-    let time_tick = (time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
+    let time_tick = (self.time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
 
     egui::CentralPanel::default()
       .frame(
@@ -211,30 +199,34 @@ impl eframe::App for TemplateApp {
         let mut fav_number_input = None;
         ui.horizontal(|ui| {
           ui.label("Office Designer's Favourite Number: ");
-          fav_number_input = Some(ui.add(TextEdit::singleline(&mut user_input.fav_number).margin(vec2(10.0, 6.0))));
+          fav_number_input =
+            Some(ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0))));
         });
 
-        ui.add(
-          Slider::new(&mut user_input.levels, 1..=200)
+        let levels_to_draw_slider = ui.add(
+          Slider::new(&mut self.user_input.levels, 1..=200)
             .text("Levels to Draw")
             .integer(),
         );
 
-        match user_input.validate() {
-          Ok(new_validated) => {
-            let (path, explored) = path_and_explored_by_generation_for_animation(
-              new_validated.fav_number,
-              new_validated.start,
-              new_validated.goal,
-            );
-            self.path = path;
-            self.explored = explored;
-            self.validated = new_validated;
-            // TODO: redraw only on change
-          }
-          Err(msg) => {
-            // TODO: style and better messages (with field names)
-            ui.label(msg.to_string());
+        if let Some(fav_number_input) = fav_number_input {
+          if fav_number_input.changed() || levels_to_draw_slider.changed() {
+            match self.user_input.validate() {
+              Ok(new_validated) => {
+                let (path, explored) = path_and_explored_by_generation_for_animation(
+                  new_validated.fav_number,
+                  new_validated.start,
+                  new_validated.goal,
+                );
+                self.path = path;
+                self.explored = explored;
+                self.validated = new_validated;
+              }
+              Err(msg) => {
+                // TODO: style and better messages (with field names)
+                ui.label(msg.to_string());
+              }
+            }
           }
         }
 
@@ -243,60 +235,54 @@ impl eframe::App for TemplateApp {
           self.validated.fav_number, self.validated.levels,
         ));
 
-        let animate_bfs_checkbox = ui.checkbox(animate_bfs, "Show Animation");
+        let animate_bfs_checkbox = ui.checkbox(&mut self.animate_bfs, "Show Animation");
         if animate_bfs_checkbox.changed() {
           self.time = Instant::now();
         }
 
         egui::ScrollArea::both().show(ui, |ui| {
-          let size = 20.0;
           let (response, painter) =
-            ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * size), Sense::hover());
+            ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * CELL_SIZE), Sense::hover());
 
           let rect = response.rect;
-          let wall_color = Color32::from_rgb(125, 0, 255);
-          let start_color = Color32::from_rgb(0, 0, 255);
-          let goal_color = Color32::from_rgb(0, 255, 0);
-          let path_color = Color32::from_rgb(255, 255, 0);
-          let explored_color = Color32::from_rgb(0, 50, 100);
-          painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
+          painter.rect_stroke(rect, 0.0, Stroke::new(1.0, WALL_COLOR));
 
           let min_x = *rect.x_range().start();
           let min_y = *rect.y_range().start();
           for y in 0..self.validated.levels {
             for x in 0..self.validated.levels {
               let pos = bfs::Pos { x, y };
-              let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
+              let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
 
               if !pos.is_open(self.validated.fav_number) {
-                painter.rect_filled(cell, 0.0, wall_color);
+                painter.rect_filled(cell, 0.0, WALL_COLOR);
               }
 
               if self.validated.start == pos {
-                painter.circle_filled(cell.center(), size / 2.0, start_color);
+                painter.circle_filled(cell.center(), CELL_SIZE / 2.0, START_COLOR);
               }
 
               if self.validated.goal == pos {
-                painter.rect_filled(cell, 4.0, goal_color);
+                painter.rect_filled(cell, 4.0, GOAL_COLOR);
               }
             }
           }
 
-          if *animate_bfs {
+          if self.animate_bfs {
             // can be used for both path length and generation to show
             let elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
             for &pos in &self.path[..elements_to_show] {
               if pos != self.validated.start && pos != self.validated.goal {
-                let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
-                painter.rect_filled(cell, 6.0, path_color);
+                let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
+                painter.rect_filled(cell, 6.0, PATH_COLOR);
               }
             }
 
             for generation in 0..(elements_to_show as u32) {
               if let Some(positions) = self.explored.get(&generation) {
                 for &pos in positions {
-                  let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
-                  painter.rect_filled(cell, 0.0, explored_color);
+                  let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
+                  painter.rect_filled(cell, 0.0, EXPLORED_COLOR);
                 }
               }
             }
@@ -308,11 +294,11 @@ impl eframe::App for TemplateApp {
   }
 }
 
-fn logical_pos_to_screen_rect(pos: Pos, size: f32, min_x: f32, min_y: f32) -> Rect {
+fn logical_pos_to_screen_rect(pos: Pos, min_x: f32, min_y: f32) -> Rect {
   let Pos { x, y } = pos;
-  let screen_min_x = x as f32 * size + min_x;
-  let screen_max_x = (x + 1) as f32 * size + min_x;
-  let screen_min_y = y as f32 * size + min_y;
-  let screen_max_y = (y + 1) as f32 * size + min_y;
+  let screen_min_x = x as f32 * CELL_SIZE + min_x;
+  let screen_max_x = (x + 1) as f32 * CELL_SIZE + min_x;
+  let screen_min_y = y as f32 * CELL_SIZE + min_y;
+  let screen_max_y = (y + 1) as f32 * CELL_SIZE + min_y;
   Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y)
 }
