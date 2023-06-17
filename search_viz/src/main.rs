@@ -3,7 +3,6 @@ use std::{
   error::Error,
   f32::consts::TAU,
   ops::{Range, RangeFull},
-  time::Duration,
 };
 
 use egui::{
@@ -12,6 +11,7 @@ use egui::{
   TextEdit, TextStyle, Vec2,
 };
 use graphs::Graph;
+use instant::{Duration, Instant};
 
 mod bfs;
 
@@ -96,7 +96,8 @@ pub struct TemplateApp {
   user_input: UserInput,
   validated: Validated,
   path: Vec<Pos>,
-  tick: u32,
+  time: Instant,
+  animate_bfs: bool,
 }
 
 const MAX_TICKS: u32 = 100;
@@ -118,7 +119,8 @@ impl Default for TemplateApp {
       user_input,
       validated,
       path,
-      tick: 0,
+      time: Instant::now(),
+      animate_bfs: true,
     }
   }
 }
@@ -137,8 +139,6 @@ impl TemplateApp {
       extreme_bg_color: Color32::from_rgb(50, 0, 125),
       widgets: Widgets {
         inactive: WidgetVisuals {
-          // TODO: set this only for the slider
-          // Color32::from_gray(60) is the default
           bg_fill: Color32::from_rgb(60, 0, 120),
           ..default_dark_visuals.widgets.inactive
         },
@@ -177,16 +177,15 @@ impl eframe::App for TemplateApp {
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
     let TemplateApp {
-      user_input: ref mut user_input,
-      //  @ UserInput {
-      //   fav_number: user_input_fav_number,
-      // },
-      validated: ref mut validated, // @ Validated {
-      //   fav_number: validated_fav_number,
-      // },
-      path: ref mut path,
-      tick: ref mut tick,
+      ref mut user_input,
+      ref mut validated,
+      ref mut path,
+      ref mut time,
+      ref mut animate_bfs,
     } = self;
+
+    // each animation tick is 1/20 of a second = 50 milliseconds
+    let time_tick = (time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
 
     egui::CentralPanel::default()
       .frame(
@@ -217,7 +216,7 @@ impl eframe::App for TemplateApp {
           fav_number_input = Some(ui.add(TextEdit::singleline(&mut user_input.fav_number).margin(vec2(10.0, 6.0))));
         });
 
-        let slider = ui.add(
+        ui.add(
           Slider::new(&mut user_input.levels, 1..=200)
             .text("Levels to Draw")
             .integer(),
@@ -240,7 +239,10 @@ impl eframe::App for TemplateApp {
           self.validated.fav_number, self.validated.levels,
         ));
 
-        ui.label(format!("Tick: {}", self.tick));
+        let animate_bfs_checkbox = ui.checkbox(animate_bfs, "Show Animation");
+        if animate_bfs_checkbox.changed() {
+          self.time = Instant::now();
+        }
 
         egui::ScrollArea::both().show(ui, |ui| {
           let size = 20.0;
@@ -259,11 +261,7 @@ impl eframe::App for TemplateApp {
           for y in 0..self.validated.levels {
             for x in 0..self.validated.levels {
               let pos = bfs::Pos { x, y };
-              let screen_min_x = x as f32 * size + min_x;
-              let screen_max_x = (x + 1) as f32 * size + min_x;
-              let screen_min_y = y as f32 * size + min_y;
-              let screen_max_y = (y + 1) as f32 * size + min_y;
-              let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
+              let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
 
               if !pos.is_open(self.validated.fav_number) {
                 painter.rect_filled(cell, 0.0, wall_color);
@@ -280,25 +278,27 @@ impl eframe::App for TemplateApp {
           }
 
           // TODO: add explored return from bfs & visualize explored cells along the path too
-          // TODO: prevent speed up when interacting with the UI by using real time perhaps
-          let path_elements_to_show = (self.path.len() as f32 / 100.0 * self.tick as f32).ceil() as usize;
-          for &pos in &self.path[..path_elements_to_show] {
-            if pos != self.validated.start && pos != self.validated.goal {
-              let Pos { x, y } = pos;
-              // TODO: reuse this logic
-              let screen_min_x = x as f32 * size + min_x;
-              let screen_max_x = (x + 1) as f32 * size + min_x;
-              let screen_min_y = y as f32 * size + min_y;
-              let screen_max_y = (y + 1) as f32 * size + min_y;
-              let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
-
-              painter.rect_filled(cell, 4.0, path_color);
+          if *animate_bfs {
+            let path_elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
+            for &pos in &self.path[..path_elements_to_show] {
+              if pos != self.validated.start && pos != self.validated.goal {
+                let cell = logical_pos_to_screen_rect(pos, size, min_x, min_y);
+                painter.rect_filled(cell, 4.0, path_color);
+              }
             }
           }
         });
       });
 
-    self.tick = (self.tick + 1) % MAX_TICKS;
     ctx.request_repaint_after(Duration::from_millis(50));
   }
+}
+
+fn logical_pos_to_screen_rect(pos: Pos, size: f32, min_x: f32, min_y: f32) -> Rect {
+  let Pos { x, y } = pos;
+  let screen_min_x = x as f32 * size + min_x;
+  let screen_max_x = (x + 1) as f32 * size + min_x;
+  let screen_min_y = y as f32 * size + min_y;
+  let screen_max_y = (y + 1) as f32 * size + min_y;
+  Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y)
 }

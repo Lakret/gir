@@ -1486,6 +1486,7 @@ dependencies = [
  "eframe",
  "egui",
  "graphs",
+ "instant",
  "tracing-subscriber",
  "tracing-wasm",
  "wasm-bindgen-futures",
