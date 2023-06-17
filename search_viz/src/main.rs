@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use egui::style::{Selection, WidgetVisuals, Widgets};
-use egui::{vec2, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
+use egui::{vec2, Color32, Frame, Layout, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
 use instant::{Duration, Instant};
 
 mod bfs;
@@ -21,7 +21,9 @@ fn main() -> eframe::Result<()> {
   // Log to stdout (if you run with `RUST_LOG=debug`).
   tracing_subscriber::fmt::init();
 
-  let native_options = eframe::NativeOptions::default();
+  let mut native_options = eframe::NativeOptions::default();
+  native_options.initial_window_size = Some(vec2(1300.0, 1300.0));
+  native_options.resizable = true;
   eframe::run_native(
     "GIR: Graph Search Examples",
     native_options,
@@ -70,7 +72,10 @@ pub struct Validated {
 
 impl UserInput {
   fn validate(&self) -> Result<Validated, Box<dyn Error>> {
-    let fav_number = self.fav_number.parse::<u32>().map_err(|err| err.to_string())?;
+    let fav_number = self
+      .fav_number
+      .parse::<u32>()
+      .map_err(|err| format!("Incorrect value for Favorite Number: {}", err.to_string()))?;
     let start = Pos {
       x: self.start_x.parse::<u32>().map_err(|err| err.to_string())?,
       y: self.start_y.parse::<u32>().map_err(|err| err.to_string())?,
@@ -170,9 +175,6 @@ impl eframe::App for TemplateApp {
   /// Called each time the UI needs repainting, which may be many times per second.
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-    // each animation tick is 1/20 of a second = 50 milliseconds
-    let time_tick = (self.time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
-
     egui::CentralPanel::default()
       .frame(
         Frame::default()
@@ -203,30 +205,25 @@ impl eframe::App for TemplateApp {
             Some(ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0))));
         });
 
-        let levels_to_draw_slider = ui.add(
+        ui.add(
           Slider::new(&mut self.user_input.levels, 1..=200)
             .text("Levels to Draw")
             .integer(),
         );
 
-        if let Some(fav_number_input) = fav_number_input {
-          if fav_number_input.changed() || levels_to_draw_slider.changed() {
-            match self.user_input.validate() {
-              Ok(new_validated) => {
-                let (path, explored) = path_and_explored_by_generation_for_animation(
-                  new_validated.fav_number,
-                  new_validated.start,
-                  new_validated.goal,
-                );
-                self.path = path;
-                self.explored = explored;
-                self.validated = new_validated;
-              }
-              Err(msg) => {
-                // TODO: style and better messages (with field names)
-                ui.label(msg.to_string());
-              }
-            }
+        match self.user_input.validate() {
+          Ok(new_validated) => {
+            let (path, explored) = path_and_explored_by_generation_for_animation(
+              new_validated.fav_number,
+              new_validated.start,
+              new_validated.goal,
+            );
+            self.path = path;
+            self.explored = explored;
+            self.validated = new_validated;
+          }
+          Err(msg) => {
+            ui.label(RichText::new(msg.to_string()).color(Color32::DARK_RED));
           }
         }
 
@@ -240,57 +237,65 @@ impl eframe::App for TemplateApp {
           self.time = Instant::now();
         }
 
-        egui::ScrollArea::both().show(ui, |ui| {
-          let (response, painter) =
-            ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * CELL_SIZE), Sense::hover());
-
-          let rect = response.rect;
-          painter.rect_stroke(rect, 0.0, Stroke::new(1.0, WALL_COLOR));
-
-          let min_x = *rect.x_range().start();
-          let min_y = *rect.y_range().start();
-          for y in 0..self.validated.levels {
-            for x in 0..self.validated.levels {
-              let pos = bfs::Pos { x, y };
-              let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
-
-              if !pos.is_open(self.validated.fav_number) {
-                painter.rect_filled(cell, 0.0, WALL_COLOR);
-              }
-
-              if self.validated.start == pos {
-                painter.circle_filled(cell.center(), CELL_SIZE / 2.0, START_COLOR);
-              }
-
-              if self.validated.goal == pos {
-                painter.rect_filled(cell, 4.0, GOAL_COLOR);
-              }
-            }
-          }
-
-          if self.animate_bfs {
-            // can be used for both path length and generation to show
-            let elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
-            for &pos in &self.path[..elements_to_show] {
-              if pos != self.validated.start && pos != self.validated.goal {
-                let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
-                painter.rect_filled(cell, 6.0, PATH_COLOR);
-              }
-            }
-
-            for generation in 0..(elements_to_show as u32) {
-              if let Some(positions) = self.explored.get(&generation) {
-                for &pos in positions {
-                  let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
-                  painter.rect_filled(cell, 0.0, EXPLORED_COLOR);
-                }
-              }
-            }
-          }
-        });
+        egui::ScrollArea::both().show(ui, |ui| self.draw_animated_grid(ui));
       });
 
+    // critical to make sure the animation is running
     ctx.request_repaint_after(Duration::from_millis(50));
+  }
+}
+
+impl TemplateApp {
+  fn draw_animated_grid(&mut self, ui: &mut egui::Ui) {
+    // each animation tick is 1/20 of a second = 50 milliseconds
+    let time_tick = (self.time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
+
+    let (response, painter) =
+      ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * CELL_SIZE), Sense::hover());
+
+    let rect = response.rect;
+    painter.rect_stroke(rect, 0.0, Stroke::new(1.0, WALL_COLOR));
+
+    let min_x = *rect.x_range().start();
+    let min_y = *rect.y_range().start();
+    for y in 0..self.validated.levels {
+      for x in 0..self.validated.levels {
+        let pos = bfs::Pos { x, y };
+        let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
+
+        if !pos.is_open(self.validated.fav_number) {
+          painter.rect_filled(cell, 0.0, WALL_COLOR);
+        }
+
+        if self.validated.start == pos {
+          painter.circle_filled(cell.center(), CELL_SIZE / 2.0, START_COLOR);
+        }
+
+        if self.validated.goal == pos {
+          painter.rect_filled(cell, 4.0, GOAL_COLOR);
+        }
+      }
+    }
+
+    if self.animate_bfs {
+      // can be used for both path length and generation to show
+      let elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
+      for &pos in &self.path[..elements_to_show] {
+        if pos != self.validated.start && pos != self.validated.goal {
+          let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
+          painter.rect_filled(cell, 6.0, PATH_COLOR);
+        }
+      }
+
+      for generation in 0..(elements_to_show as u32) {
+        if let Some(positions) = self.explored.get(&generation) {
+          for &pos in positions {
+            let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
+            painter.rect_filled(cell, 0.0, EXPLORED_COLOR);
+          }
+        }
+      }
+    }
   }
 }
 
