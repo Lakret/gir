@@ -3,6 +3,7 @@ use std::{
   error::Error,
   f32::consts::TAU,
   ops::{Range, RangeFull},
+  time::Duration,
 };
 
 use egui::{
@@ -94,22 +95,37 @@ impl UserInput {
 pub struct TemplateApp {
   user_input: UserInput,
   validated: Validated,
+  path: Vec<Pos>,
+  tick: u32,
 }
+
+const MAX_TICKS: u32 = 100;
 
 impl Default for TemplateApp {
   fn default() -> Self {
     let user_input = UserInput {
       fav_number: "1350".to_string(),
-      levels: 20,
+      levels: 42,
       start_x: "1".to_string(),
       start_y: "1".to_string(),
-      goal_x: "7".to_string(),
-      goal_y: "4".to_string(),
+      goal_x: "31".to_string(),
+      goal_y: "39".to_string(),
     };
     let validated = user_input.validate().unwrap();
+    let path = path_from_validated(&validated);
 
-    Self { user_input, validated }
+    Self {
+      user_input,
+      validated,
+      path,
+      tick: 0,
+    }
   }
+}
+
+fn path_from_validated(validated: &Validated) -> Vec<Pos> {
+  let parents = bfs::bfs(validated.fav_number, validated.start, validated.goal);
+  bfs::reconstruct_path(parents, validated.goal)
 }
 
 impl TemplateApp {
@@ -166,8 +182,10 @@ impl eframe::App for TemplateApp {
       //   fav_number: user_input_fav_number,
       // },
       validated: ref mut validated, // @ Validated {
-                                    //   fav_number: validated_fav_number,
-                                    // },
+      //   fav_number: validated_fav_number,
+      // },
+      path: ref mut path,
+      tick: ref mut tick,
     } = self;
 
     egui::CentralPanel::default()
@@ -207,6 +225,7 @@ impl eframe::App for TemplateApp {
 
         match user_input.validate() {
           Ok(new_validated) => {
+            self.path = path_from_validated(&new_validated);
             self.validated = new_validated;
             // TODO: redraw only on change
           }
@@ -221,6 +240,8 @@ impl eframe::App for TemplateApp {
           self.validated.fav_number, self.validated.levels,
         ));
 
+        ui.label(format!("Tick: {}", self.tick));
+
         egui::ScrollArea::both().show(ui, |ui| {
           let size = 20.0;
           let (response, painter) =
@@ -228,8 +249,9 @@ impl eframe::App for TemplateApp {
 
           let rect = response.rect;
           let wall_color = Color32::from_rgb(125, 0, 255);
-          let path_color = Color32::from_rgb(255, 255, 0);
+          let start_color = Color32::from_rgb(0, 0, 255);
           let goal_color = Color32::from_rgb(0, 255, 0);
+          let path_color = Color32::from_rgb(255, 255, 0);
           painter.rect_stroke(rect, 0.0, Stroke::new(1.0, wall_color));
 
           let min_x = *rect.x_range().start();
@@ -241,66 +263,42 @@ impl eframe::App for TemplateApp {
               let screen_max_x = (x + 1) as f32 * size + min_x;
               let screen_min_y = y as f32 * size + min_y;
               let screen_max_y = (y + 1) as f32 * size + min_y;
-
               let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
+
               if !pos.is_open(self.validated.fav_number) {
                 painter.rect_filled(cell, 0.0, wall_color);
               }
 
               if self.validated.start == pos {
-                painter.circle_filled(cell.center(), size / 2.0, path_color);
+                painter.circle_filled(cell.center(), size / 2.0, start_color);
               }
 
               if self.validated.goal == pos {
-                // TODO: debug why this impl is not displaying a grid over the goal field
-                // let mut mesh = Mesh::default();
-                // for offset in 0..(size as u32) {
-                //   if offset % 2 != 0 {
-                //     let point_x = screen_min_x + offset as f32;
-                //     let point_y = screen_min_y + offset as f32;
-                //     let pixel = Rect::from_x_y_ranges(point_x..=point_x, point_y..=point_y);
-                //     mesh.add_colored_rect(pixel, goal_color);
-                //   }
-                // }
-                // painter.add(Shape::Mesh(mesh));
-
                 painter.rect_filled(cell, 4.0, goal_color);
               }
             }
           }
+
+          // TODO: add explored return from bfs & visualize explored cells along the path too
+          // TODO: prevent speed up when interacting with the UI by using real time perhaps
+          let path_elements_to_show = (self.path.len() as f32 / 100.0 * self.tick as f32).ceil() as usize;
+          for &pos in &self.path[..path_elements_to_show] {
+            if pos != self.validated.start && pos != self.validated.goal {
+              let Pos { x, y } = pos;
+              // TODO: reuse this logic
+              let screen_min_x = x as f32 * size + min_x;
+              let screen_max_x = (x + 1) as f32 * size + min_x;
+              let screen_min_y = y as f32 * size + min_y;
+              let screen_max_y = (y + 1) as f32 * size + min_y;
+              let cell = Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y);
+
+              painter.rect_filled(cell, 4.0, path_color);
+            }
+          }
         });
-
-        // TODO: animated path to goal
-
-        // painter.line_segment(
-        //   [c, c + r * Vec2::angled(TAU * 3.0 / 8.0)],
-        //   Stroke {
-        //     color: Color32::from_rgb(0, 128, 128),
-        //     ..stroke
-        //   },
-        // );
-
-        // ui.label(format!("rect = {rect:?}"));
-
-        // if ui.button("Increment").clicked() {
-        //   *value += 1.0;
-        // }
-
-        // ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-        //   ui.horizontal(|ui| {
-        //     ui.spacing_mut().item_spacing.x = 0.0;
-        //     ui.label("powered by ");
-        //     ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-        //     ui.label(" and ");
-        //     ui.hyperlink_to("eframe", "https://github.com/emilk/egui/tree/master/crates/eframe");
-        //     ui.label(".");
-        //   });
-        // });
-        //
-        // ui.add(egui::github_link_file!(
-        //   "https://github.com/emilk/eframe_template/blob/master/",
-        //   "Source code yo."
-        // ));
       });
+
+    self.tick = (self.tick + 1) % MAX_TICKS;
+    ctx.request_repaint_after(Duration::from_millis(50));
   }
 }
