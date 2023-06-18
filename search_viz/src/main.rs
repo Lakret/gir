@@ -2,20 +2,20 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use egui::style::{Selection, WidgetVisuals, Widgets};
-use egui::{vec2, Color32, Frame, Layout, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
+use egui::{vec2, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
 use instant::{Duration, Instant};
 
 mod bfs;
 use bfs::*;
 
-const CELL_SIZE: f32 = 20.0;
+const CELL_SIZE: f32 = 16.0;
 const WALL_COLOR: Color32 = Color32::from_rgb(125, 0, 255);
 const START_COLOR: Color32 = Color32::from_rgb(0, 0, 255);
 const GOAL_COLOR: Color32 = Color32::from_rgb(0, 255, 0);
 const PATH_COLOR: Color32 = Color32::from_rgb(255, 255, 0);
 const EXPLORED_COLOR: Color32 = Color32::from_rgb(0, 50, 100);
 
-// When compiling natively:
+// when compiling natively
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
   // Log to stdout (if you run with `RUST_LOG=debug`).
@@ -31,7 +31,7 @@ fn main() -> eframe::Result<()> {
   )
 }
 
-// when compiling to web using trunk.
+// when compiling to wasm using trunk
 #[cfg(target_arch = "wasm32")]
 fn main() {
   // make sure panics are logged using `console.error`
@@ -309,7 +309,7 @@ fn logical_pos_to_screen_rect(pos: Pos, min_x: f32, min_y: f32) -> Rect {
   let Pos { x, y } = pos;
   let screen_min_x = x as f32 * CELL_SIZE + min_x;
   let screen_max_x = (x + 1) as f32 * CELL_SIZE + min_x;
-  let screen_min_y = y as f32 * CELL_SIZE + min_y;
-  let screen_max_y = (y + 1) as f32 * CELL_SIZE + min_y;
+  let screen_min_y = (y as f32 * CELL_SIZE + min_y).ceil();
+  let screen_max_y = ((y + 1) as f32 * CELL_SIZE + min_y).ceil();
   Rect::from_x_y_ranges(screen_min_x..=screen_max_x, screen_min_y..=screen_max_y)
 }
