@@ -22,7 +22,7 @@ fn main() -> eframe::Result<()> {
   tracing_subscriber::fmt::init();
 
   let mut native_options = eframe::NativeOptions::default();
-  native_options.initial_window_size = Some(vec2(1300.0, 1300.0));
+  native_options.initial_window_size = Some(vec2(1100.0, 1050.0));
   native_options.resizable = true;
   eframe::run_native(
     "GIR: Graph Search Examples",
