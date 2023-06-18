@@ -136,33 +136,18 @@ impl Default for TemplateApp {
 impl TemplateApp {
   /// Called once before the first frame.
   pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-    let default_dark_visuals = egui::Visuals::dark();
-    cc.egui_ctx.set_visuals(egui::Visuals {
-      override_text_color: Some(Color32::from_rgb(255, 255, 255)),
-      extreme_bg_color: Color32::from_rgb(50, 0, 125),
-      widgets: Widgets {
-        inactive: WidgetVisuals {
-          bg_fill: Color32::from_rgb(60, 0, 120),
-          ..default_dark_visuals.widgets.inactive
-        },
-        hovered: WidgetVisuals {
-          bg_fill: Color32::from_rgb(255, 100, 175),
-          ..default_dark_visuals.widgets.hovered
-        },
-        active: WidgetVisuals {
-          bg_fill: Color32::from_rgb(255, 100, 175),
-          ..default_dark_visuals.widgets.hovered
-        },
-        ..default_dark_visuals.widgets
-      },
-      selection: Selection {
-        // slider "progress" color Color32::from_rgb(0, 92, 128) is default
-        bg_fill: Color32::from_rgb(255, 100, 175),
-        ..default_dark_visuals.selection
-      },
-      slider_trailing_fill: true,
-      ..default_dark_visuals
-    });
+    let mut visuals = egui::Visuals::dark();
+    visuals.override_text_color = Some(Color32::WHITE);
+    visuals.extreme_bg_color = Color32::from_rgb(50, 0, 125);
+    visuals.slider_trailing_fill = true;
+
+    visuals.widgets.inactive.bg_fill = Color32::from_rgb(60, 0, 120);
+    visuals.widgets.hovered.bg_fill = Color32::from_rgb(255, 100, 175);
+    visuals.widgets.active.bg_fill = Color32::from_rgb(255, 100, 175);
+
+    // slider "progress" color Color32::from_rgb(0, 92, 128) is default
+    visuals.selection.bg_fill = Color32::from_rgb(255, 100, 175);
+    cc.egui_ctx.set_visuals(visuals);
 
     let mut style = (*cc.egui_ctx.style()).clone();
     for (_text_style, font_id) in style.text_styles.iter_mut() {
