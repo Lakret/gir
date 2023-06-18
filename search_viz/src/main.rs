@@ -7,6 +7,8 @@ use instant::{Duration, Instant};
 
 mod bfs;
 use bfs::*;
+mod dfs;
+use dfs::*;
 
 const CELL_SIZE: f32 = 16.0;
 const WALL_COLOR: Color32 = Color32::from_rgb(125, 0, 255);

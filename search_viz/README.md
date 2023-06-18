@@ -1,3 +1,8 @@
+# Graph Traversal with Breadth-First and Depth-First Search Algorithms Demo
+
+This demo uses [egui](https://github.com/emilk/egui) library and can be used as either
+a desktop app or as a WebAssembly web demo.
+
 ## Linux / WSL2 Pre-install Instructions
 
 See [eframe docs](https://github.com/emilk/egui/tree/master/crates/eframe).
