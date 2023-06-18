@@ -101,7 +101,9 @@ pub struct TemplateApp {
   path: Vec<Pos>,
   explored: HashMap<u32, Vec<Pos>>,
   time: Instant,
+  time_tick: u32,
   animate_bfs: bool,
+  show_path: bool,
 }
 
 impl Default for TemplateApp {
@@ -124,7 +126,9 @@ impl Default for TemplateApp {
       path,
       explored,
       time: Instant::now(),
+      time_tick: 0,
       animate_bfs: true,
+      show_path: true,
     }
   }
 }
@@ -194,22 +198,20 @@ impl eframe::App for TemplateApp {
           },
         );
 
-        ui.heading("Breadth-First Search Example");
         ui.hyperlink_to("Advent of Code 2016, Day 13", "https://adventofcode.com/2016/day/13");
         ui.add_space(15.0);
 
-        let mut fav_number_input = None;
         ui.horizontal(|ui| {
-          ui.label("Office Designer's Favourite Number: ");
-          fav_number_input =
-            Some(ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0))));
-        });
+          ui.label("Favorite Number: ");
+          ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0)));
 
-        ui.add(
-          Slider::new(&mut self.user_input.levels, 1..=200)
-            .text("Levels to Draw")
-            .integer(),
-        );
+          ui.add(
+            Slider::new(&mut self.user_input.levels, 1..=200)
+              .text("Levels to Draw")
+              .integer(),
+          );
+        });
+        ui.add_space(15.0);
 
         match self.user_input.validate() {
           Ok(new_validated) => {
@@ -227,15 +229,17 @@ impl eframe::App for TemplateApp {
           }
         }
 
-        ui.label(format!(
-          "The office for the given number {} with {} levels:",
-          self.validated.fav_number, self.validated.levels,
-        ));
+        ui.horizontal(|ui| {
+          let animate_bfs_checkbox = ui.checkbox(&mut self.animate_bfs, "Play Animation");
+          if animate_bfs_checkbox.changed() && self.animate_bfs {
+            self.time = Instant::now();
+          }
 
-        let animate_bfs_checkbox = ui.checkbox(&mut self.animate_bfs, "Show Animation");
-        if animate_bfs_checkbox.changed() {
-          self.time = Instant::now();
-        }
+          ui.add(Slider::new(&mut self.time_tick, 0..=100).text("Tick").integer());
+
+          ui.checkbox(&mut self.show_path, "Show Path");
+        });
+        ui.add_space(15.0);
 
         egui::ScrollArea::both().show(ui, |ui| self.draw_animated_grid(ui));
       });
@@ -247,8 +251,10 @@ impl eframe::App for TemplateApp {
 
 impl TemplateApp {
   fn draw_animated_grid(&mut self, ui: &mut egui::Ui) {
-    // each animation tick is 1/20 of a second = 50 milliseconds
-    let time_tick = (self.time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
+    if self.animate_bfs {
+      // each animation tick is 1/20 of a second = 50 milliseconds
+      self.time_tick = (self.time.elapsed().as_secs_f32() * 20.0).ceil() as u32 % 100;
+    }
 
     let (response, painter) =
       ui.allocate_painter(Vec2::splat(self.validated.levels as f32 * CELL_SIZE), Sense::hover());
@@ -277,9 +283,9 @@ impl TemplateApp {
       }
     }
 
-    if self.animate_bfs {
+    if self.show_path {
       // can be used for both path length and generation to show
-      let elements_to_show = (self.path.len() as f32 / 100.0 * time_tick as f32).ceil() as usize;
+      let elements_to_show = (self.path.len() as f32 / 100.0 * self.time_tick as f32).ceil() as usize;
       for &pos in &self.path[..elements_to_show] {
         if pos != self.validated.start && pos != self.validated.goal {
           let cell = logical_pos_to_screen_rect(pos, min_x, min_y);
