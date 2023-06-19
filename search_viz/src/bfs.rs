@@ -36,8 +36,8 @@ impl Pos {
 pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> HashMap<Pos, Pos> {
   let mut parents = HashMap::new();
   let mut queue = VecDeque::from(vec![start]);
-  let mut explored = HashSet::new();
-  explored.insert(start);
+  let mut seen = HashSet::new();
+  seen.insert(start);
 
   while let Some(curr) = queue.pop_front() {
     if curr == goal {
@@ -45,8 +45,8 @@ pub fn bfs(fav_number: u32, start: Pos, goal: Pos) -> HashMap<Pos, Pos> {
     }
 
     for next in curr.adjacent().filter(|next| next.is_open(fav_number)) {
-      if !explored.contains(&next) {
-        explored.insert(next);
+      if !seen.contains(&next) {
+        seen.insert(next);
         parents.insert(next, curr);
         queue.push_back(next);
       }
