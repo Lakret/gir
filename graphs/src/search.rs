@@ -198,4 +198,39 @@ mod tests {
       }
     ));
   }
+
+  #[test]
+  fn slide_graph_bfs_order_test() {
+    let mut g = Graph::new();
+    for vid in ["A", "B", "C", "D", "E", "F"] {
+      g.push_vid(vid);
+    }
+    for (from, to) in [
+      ("A", "B"),
+      ("A", "C"),
+      ("A", "D"),
+      ("B", "F"),
+      ("C", "D"),
+      ("D", "E"),
+      ("E", "A"),
+    ] {
+      g.push_edge(from, to, ());
+    }
+
+    let mut exploration_order = vec![];
+    {
+      let mut opts = Opts::default();
+      opts.on_explore = Some(Box::new(|from_v: &&str, to_v_explored| {
+        exploration_order.push((from_v.to_string(), to_v_explored.to_string()))
+      }));
+      assert!(bfs(&g, &"A", |vid, _| *vid == "F", &mut opts));
+    }
+    assert_eq!(
+      exploration_order,
+      vec![("A", "B"), ("A", "C"), ("A", "D"), ("B", "F"), ("D", "E")]
+        .into_iter()
+        .map(|(x, y)| (x.to_string(), y.to_string()))
+        .collect::<Vec<_>>()
+    );
+  }
 }
