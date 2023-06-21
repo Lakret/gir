@@ -16,3 +16,4 @@ Each episode comes with a tag in this repo / link to another repo if the example
 [Yew framework intro & review video](https://youtu.be/1WHJqz0CHBw).
 The code for those is [in this repo](https://github.com/Lakret/cells) +
 there's a demo [here](https://lakret.net/demos/cells/index.html).
+- Upcoming Bredth-First Search video. [Tag `bfs`](https://github.com/Lakret/gir/releases/tag/bfs).
