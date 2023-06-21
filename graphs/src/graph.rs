@@ -106,15 +106,18 @@ where
     self.adjacency.get(vid)
   }
 
-  pub fn adjacent(self: &Self, vid: VId) -> Vec<&VId> {
-    self.adjacency.get(&vid).unwrap().iter().map(|(vid, _e)| vid).collect()
+  pub fn adjacent(self: &Self, vid: &VId) -> Vec<&VId> {
+    match self.adjacency.get(&vid) {
+      Some(adjacent_edges) => adjacent_edges.iter().map(|(vid, _e)| vid).collect(),
+      None => vec![],
+    }
   }
 
-  pub fn map_adjacent<F, R>(self: &Self, vid: VId, mut f: F) -> Vec<R>
+  pub fn map_adjacent<F, R>(self: &Self, vid: &VId, mut f: F) -> Vec<R>
   where
     F: FnMut(&(VId, E)) -> R,
   {
-    let edges = self.adjacency.get(&vid);
+    let edges = self.adjacency.get(vid);
 
     match edges {
       None => vec![],
@@ -170,11 +173,11 @@ mod tests {
     assert_eq!(g.adjacency.get("C").unwrap(), &[("A", "C -> A".to_string())]);
 
     assert_eq!(
-      g.map_adjacent("A", |x| x.clone()),
+      g.map_adjacent(&"A", |x| x.clone()),
       [("B", "A -> B".to_string()), ("A", "A loop".to_string())]
     );
-    assert_eq!(g.map_adjacent("B", |x| x.clone()), [("C", "B -> C".to_string())]);
-    assert_eq!(g.map_adjacent("C", |x| x.clone()), [("A", "C -> A".to_string())]);
+    assert_eq!(g.map_adjacent(&"B", |x| x.clone()), [("C", "B -> C".to_string())]);
+    assert_eq!(g.map_adjacent(&"C", |x| x.clone()), [("A", "C -> A".to_string())]);
 
     assert_eq!(g.get_vertex(&"A"), Some(&()));
     assert_eq!(g.get_vertex(&"B"), Some(&()));

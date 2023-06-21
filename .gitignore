@@ -1,5 +1,9 @@
 /target
 /**/target
+/**/dist
 
 # Project-specific
 image.svg
+
+# VS Code
+/.vscode
