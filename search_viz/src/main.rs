@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use egui::style::{Selection, WidgetVisuals, Widgets};
 use egui::{vec2, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
 use instant::{Duration, Instant};
 
 mod bfs;
 use bfs::*;
-mod dfs;
-use dfs::*;
 
 const CELL_SIZE: f32 = 16.0;
 const WALL_COLOR: Color32 = Color32::from_rgb(125, 0, 255);
@@ -174,9 +171,9 @@ impl eframe::App for TemplateApp {
       )
       .show(ctx, |ui| {
         ui.collapsing(
-          RichText::new("Breadth-First and Depth-First Graph Search Algorithms Demo").heading(),
+          RichText::new("Breadth-First Search Graph Algorithms Demo").heading(),
           |ui| {
-            ui.label("This demo allows you to try out 2 example Advent of Code problems for bfs and dfs respectively.");
+            ui.label("This demo allows you to try out an example Advent of Code problem for BFS.");
             ui.horizontal(|ui| {
               ui.label("You can find the source code for this example ");
               ui.hyperlink_to("here", "https://github.com/lakret/gir");
