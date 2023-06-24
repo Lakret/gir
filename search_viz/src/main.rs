@@ -171,7 +171,7 @@ impl eframe::App for TemplateApp {
       )
       .show(ctx, |ui| {
         ui.collapsing(
-          RichText::new("Breadth-First Search Graph Algorithms Demo").heading(),
+          RichText::new("Breadth-First Search Graph Algorithm Demo").heading(),
           |ui| {
             ui.label("This demo allows you to try out an example Advent of Code problem for BFS.");
             ui.horizontal(|ui| {
