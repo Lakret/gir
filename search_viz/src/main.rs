@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use egui::{vec2, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
+use egui::{vec2, Button, Color32, Frame, Margin, Rect, RichText, Sense, Slider, Stroke, TextEdit, Vec2};
 use instant::{Duration, Instant};
 
 mod bfs;
@@ -13,6 +13,8 @@ const START_COLOR: Color32 = Color32::from_rgb(0, 0, 255);
 const GOAL_COLOR: Color32 = Color32::from_rgb(0, 255, 0);
 const PATH_COLOR: Color32 = Color32::from_rgb(255, 255, 0);
 const EXPLORED_COLOR: Color32 = Color32::from_rgb(0, 50, 100);
+const DFS_TAB_COLOR: Color32 = Color32::from_rgb(20, 100, 30);
+const TAB_BTN_SIZE: Vec2 = vec2(200.0, 50.0);
 
 // when compiling natively
 #[cfg(not(target_arch = "wasm32"))]
@@ -96,6 +98,8 @@ impl UserInput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemplateApp {
   user_input: UserInput,
+  show_dfs_tab: bool,
+  // BFS
   validated: Validated,
   path: Vec<Pos>,
   explored: HashMap<u32, Vec<Pos>>,
@@ -120,6 +124,7 @@ impl Default for TemplateApp {
       path_and_explored_by_generation_for_animation(validated.fav_number, validated.start, validated.goal);
 
     Self {
+      show_dfs_tab: false,
       user_input,
       validated,
       path,
@@ -170,6 +175,22 @@ impl eframe::App for TemplateApp {
           .inner_margin(Margin::same(20.0)),
       )
       .show(ctx, |ui| {
+        ui.horizontal_top(|ui| {
+          let bfs_tab_btn = Button::new("Breadth-First Search Example")
+            .min_size(TAB_BTN_SIZE)
+            .fill(EXPLORED_COLOR);
+          if ui.add(bfs_tab_btn).clicked() {
+            self.show_dfs_tab = false;
+          }
+
+          let dfs_tab_btn = Button::new("Depth-First Search Example")
+            .min_size(TAB_BTN_SIZE)
+            .fill(DFS_TAB_COLOR);
+          if ui.add(dfs_tab_btn).clicked() {
+            self.show_dfs_tab = true;
+          }
+        });
+
         ui.collapsing(
           RichText::new("Breadth-First Search Graph Algorithm Demo").heading(),
           |ui| {
