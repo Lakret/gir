@@ -95,11 +95,17 @@ impl UserInput {
   }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tabs {
+  BFS,
+  DFS,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemplateApp {
-  user_input: UserInput,
-  show_dfs_tab: bool,
+  tab: Tabs,
   // BFS
+  user_input: UserInput,
   validated: Validated,
   path: Vec<Pos>,
   explored: HashMap<u32, Vec<Pos>>,
@@ -124,7 +130,8 @@ impl Default for TemplateApp {
       path_and_explored_by_generation_for_animation(validated.fav_number, validated.start, validated.goal);
 
     Self {
-      show_dfs_tab: false,
+      // TODO: return it to be the BFS default
+      tab: Tabs::DFS,
       user_input,
       validated,
       path,
@@ -176,77 +183,23 @@ impl eframe::App for TemplateApp {
       )
       .show(ctx, |ui| {
         ui.horizontal_top(|ui| {
-          let bfs_tab_btn = Button::new("Breadth-First Search Example")
-            .min_size(TAB_BTN_SIZE)
-            .fill(EXPLORED_COLOR);
-          if ui.add(bfs_tab_btn).clicked() {
-            self.show_dfs_tab = false;
-          }
-
-          let dfs_tab_btn = Button::new("Depth-First Search Example")
-            .min_size(TAB_BTN_SIZE)
-            .fill(DFS_TAB_COLOR);
-          if ui.add(dfs_tab_btn).clicked() {
-            self.show_dfs_tab = true;
-          }
-        });
-
-        ui.collapsing(
-          RichText::new("Breadth-First Search Graph Algorithm Demo").heading(),
-          |ui| {
-            ui.label("This demo allows you to try out an example Advent of Code problem for BFS.");
-            ui.horizontal(|ui| {
-              ui.label("You can find the source code for this example ");
-              ui.hyperlink_to("here", "https://github.com/lakret/gir");
-              ui.label(".");
-            });
-          },
-        );
-
-        ui.hyperlink_to("Advent of Code 2016, Day 13", "https://adventofcode.com/2016/day/13");
-        ui.add_space(15.0);
-
-        ui.horizontal(|ui| {
-          ui.label("Favorite Number: ");
-          ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0)));
-
-          ui.add(
-            Slider::new(&mut self.user_input.levels, 1..=200)
-              .text("Levels to Draw")
-              .integer(),
+          ui.selectable_value(
+            &mut self.tab,
+            Tabs::BFS,
+            RichText::new("Breadth-First Search Example").size(26.0),
+          );
+          ui.selectable_value(
+            &mut self.tab,
+            Tabs::DFS,
+            RichText::new("Depth-First Search Example").size(26.0),
           );
         });
-        ui.add_space(15.0);
 
-        match self.user_input.validate() {
-          Ok(new_validated) => {
-            let (path, explored) = path_and_explored_by_generation_for_animation(
-              new_validated.fav_number,
-              new_validated.start,
-              new_validated.goal,
-            );
-            self.path = path;
-            self.explored = explored;
-            self.validated = new_validated;
-          }
-          Err(msg) => {
-            ui.label(RichText::new(msg.to_string()).color(Color32::DARK_RED));
-          }
+        if self.tab == Tabs::BFS {
+          self.bfs_ui(ui);
+        } else {
+          self.dfs_ui(ui);
         }
-
-        ui.horizontal(|ui| {
-          let animate_bfs_checkbox = ui.checkbox(&mut self.animate_bfs, "Play Animation");
-          if animate_bfs_checkbox.changed() && self.animate_bfs {
-            self.time = Instant::now();
-          }
-
-          ui.add(Slider::new(&mut self.time_tick, 0..=100).text("Tick").integer());
-
-          ui.checkbox(&mut self.show_path, "Show Path");
-        });
-        ui.add_space(15.0);
-
-        egui::ScrollArea::both().show(ui, |ui| self.draw_animated_grid(ui));
       });
 
     // critical to make sure the animation is running
@@ -255,6 +208,66 @@ impl eframe::App for TemplateApp {
 }
 
 impl TemplateApp {
+  fn bfs_ui(&mut self, ui: &mut egui::Ui) {
+    ui.collapsing(
+      RichText::new("Breadth-First Search Graph Algorithm Demo").heading(),
+      |ui| {
+        ui.label("This demo allows you to try out an example Advent of Code problem for BFS.");
+        ui.horizontal(|ui| {
+          ui.label("You can find the source code for this example ");
+          ui.hyperlink_to("here", "https://github.com/lakret/gir");
+          ui.label(".");
+        });
+      },
+    );
+
+    ui.hyperlink_to("Tutorial Video", "https://youtu.be/ZDy3tqn-DKA");
+    ui.hyperlink_to("Advent of Code 2016, Day 13", "https://adventofcode.com/2016/day/13");
+    ui.add_space(15.0);
+
+    ui.horizontal(|ui| {
+      ui.label("Favorite Number: ");
+      ui.add(TextEdit::singleline(&mut self.user_input.fav_number).margin(vec2(10.0, 6.0)));
+
+      ui.add(
+        Slider::new(&mut self.user_input.levels, 1..=200)
+          .text("Levels to Draw")
+          .integer(),
+      );
+    });
+    ui.add_space(15.0);
+
+    match self.user_input.validate() {
+      Ok(new_validated) => {
+        let (path, explored) = path_and_explored_by_generation_for_animation(
+          new_validated.fav_number,
+          new_validated.start,
+          new_validated.goal,
+        );
+        self.path = path;
+        self.explored = explored;
+        self.validated = new_validated;
+      }
+      Err(msg) => {
+        ui.label(RichText::new(msg.to_string()).color(Color32::DARK_RED));
+      }
+    }
+
+    ui.horizontal(|ui| {
+      let animate_bfs_checkbox = ui.checkbox(&mut self.animate_bfs, "Play Animation");
+      if animate_bfs_checkbox.changed() && self.animate_bfs {
+        self.time = Instant::now();
+      }
+
+      ui.add(Slider::new(&mut self.time_tick, 0..=100).text("Tick").integer());
+
+      ui.checkbox(&mut self.show_path, "Show Path");
+    });
+    ui.add_space(15.0);
+
+    egui::ScrollArea::both().show(ui, |ui| self.draw_animated_grid(ui));
+  }
+
   fn draw_animated_grid(&mut self, ui: &mut egui::Ui) {
     if self.animate_bfs {
       // each animation tick is 1/20 of a second = 50 milliseconds
@@ -307,6 +320,21 @@ impl TemplateApp {
         }
       }
     }
+  }
+
+  fn dfs_ui(&mut self, ui: &mut egui::Ui) {
+    ui.collapsing(
+      RichText::new("Depth-First Search Graph Algorithm Demo").heading(),
+      |ui| {
+        ui.label("This demo allows you to play tic-tac-toe against the computer.");
+        ui.label("Computer will use depth-first search to select its moves.");
+        ui.horizontal(|ui| {
+          ui.label("You can find the source code for this example ");
+          ui.hyperlink_to("here", "https://github.com/lakret/gir");
+          ui.label(".");
+        });
+      },
+    );
   }
 }
 
