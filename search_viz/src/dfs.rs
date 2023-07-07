@@ -4,8 +4,9 @@ pub enum Mark {
   Circle,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Game {
+  // TODO: remove temp
   state: [Option<Mark>; 9],
   circle_turn: bool,
 }
@@ -25,12 +26,33 @@ const LINES: [[usize; 3]; 8] = [
 ];
 
 impl Game {
+  pub fn mark_at(&self, row: usize, col: usize) -> Option<Mark> {
+    if let Some(pos) = row_col_to_pos(row, col) {
+      return self.state[pos];
+    }
+
+    None
+  }
+
+  pub fn is_occupied(&self, row: usize, col: usize) -> bool {
+    if let Some(pos) = row_col_to_pos(row, col) {
+      return self.state[pos].is_some();
+    }
+
+    false
+  }
+
   pub fn is_cross_turn(&self) -> bool {
     !self.circle_turn
   }
 
   pub fn is_circle_turn(&self) -> bool {
     self.circle_turn
+  }
+
+  pub fn do_move_row_col(&mut self, row: usize, col: usize) {
+    let pos = row_col_to_pos(row, col).expect("invalid row or col");
+    self.do_move(pos);
   }
 
   pub fn do_move(&mut self, pos: usize) {
@@ -61,7 +83,11 @@ impl Game {
     moves
   }
 
-  pub fn is_won(&self) -> Option<Mark> {
+  pub fn is_won(&self) -> bool {
+    self.winning_mark().is_some()
+  }
+
+  pub fn winning_mark(&self) -> Option<Mark> {
     for line in LINES {
       if let Some(mark) = self.state[line[0]] {
         if self.state[line[1]] == Some(mark) && self.state[line[2]] == Some(mark) {
@@ -70,6 +96,16 @@ impl Game {
       }
     }
 
+    None
+  }
+}
+
+fn row_col_to_pos(row: usize, col: usize) -> Option<usize> {
+  let pos = row * 3 + col;
+
+  if pos < 9 {
+    Some(pos)
+  } else {
     None
   }
 }
