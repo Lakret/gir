@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-use std::error::Error;
-
 use egui::{vec2, Color32, Frame, Margin, RichText};
-use instant::{Duration, Instant};
+use instant::Duration;
 
 mod bfs;
-use bfs::*;
 mod bfs_ui;
+mod dfs;
 mod dfs_ui;
 
 // when compiling natively
@@ -56,6 +53,7 @@ enum Tabs {
 pub struct TemplateApp {
   tab: Tabs,
   bfs_state: bfs_ui::State,
+  dfs_state: dfs_ui::State,
 }
 
 impl Default for TemplateApp {
@@ -64,6 +62,7 @@ impl Default for TemplateApp {
       // TODO: return it to be the BFS default
       tab: Tabs::DFS,
       bfs_state: bfs_ui::State::default(),
+      dfs_state: dfs_ui::State::default(),
     }
   }
 }
@@ -122,7 +121,7 @@ impl eframe::App for TemplateApp {
         if self.tab == Tabs::BFS {
           self.bfs_state.ui(ui);
         } else {
-          dfs_ui::ui(self, ui);
+          self.dfs_state.ui(ui);
         }
       });
 
