@@ -5,6 +5,7 @@ use crate::dfs::{Game, Mark};
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct State {
   game: Game,
+  manual_mode: bool,
 }
 
 impl State {
@@ -22,6 +23,12 @@ impl State {
       },
     );
 
+    ui.horizontal(|ui| {
+      ui.label("Play against:");
+      ui.radio_value(&mut self.manual_mode, false, "Computer");
+      ui.radio_value(&mut self.manual_mode, true, "Person");
+    });
+
     Grid::new("game_grid")
       .num_columns(3)
       .spacing([8.0, 8.0])
@@ -31,16 +38,16 @@ impl State {
             let mark = self.game.mark_at(row, col);
             let label = mark.map_or("", mark_image);
 
-            let button = Button::new(label)
+            let cell = Button::new(RichText::new(label).size(46.0))
               .fill(match mark {
                 Some(Mark::Cross) => egui::Color32::from_rgb(150, 0, 150),
                 Some(Mark::Circle) => egui::Color32::from_rgb(0, 100, 200),
                 None => egui::Color32::from_gray(200),
               })
               .min_size(vec2(64.0, 64.0));
+            let cell = ui.add(cell);
 
-            let button = ui.add(button);
-            if button.clicked() && !self.game.is_occupied(row, col) && !self.game.is_won() {
+            if cell.clicked() && !self.game.is_occupied(row, col) && !self.game.is_won() {
               self.game.do_move_row_col(row, col);
             }
           }

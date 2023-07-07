@@ -6,7 +6,6 @@ pub enum Mark {
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Game {
-  // TODO: remove temp
   state: [Option<Mark>; 9],
   circle_turn: bool,
 }
@@ -98,6 +97,13 @@ impl Game {
 
     None
   }
+
+  // computer always plays as circles
+  pub fn select_next_move(&self) -> Option<usize> {
+    // TODO: run dfs and figure out which turn to take
+    todo!();
+    None
+  }
 }
 
 fn row_col_to_pos(row: usize, col: usize) -> Option<usize> {
@@ -107,5 +113,13 @@ fn row_col_to_pos(row: usize, col: usize) -> Option<usize> {
     Some(pos)
   } else {
     None
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn next_moves_test() {
+    // TODO: check next moves
   }
 }
