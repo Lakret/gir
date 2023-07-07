@@ -18,8 +18,6 @@ eframe = { version = "0.21.0", default-features = false, features = [
 ] }
 # since std::time is not implemented for WASM
 instant = { version = "0.1", features = ["wasm-bindgen"] }
-# for dfs example
-bitvec = "^1.0"
 
 # native
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
