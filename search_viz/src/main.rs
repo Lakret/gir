@@ -98,12 +98,14 @@ impl eframe::App for TemplateApp {
   /// Called each time the UI needs repainting, which may be many times per second.
   /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
   fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    let tab_bg_fill = if self.tab == Tabs::BFS {
+      Color32::from_rgb(20, 0, 50)
+    } else {
+      Color32::from_rgb(0, 30, 30)
+    };
+
     egui::CentralPanel::default()
-      .frame(
-        Frame::default()
-          .fill(Color32::from_rgb(20, 0, 50))
-          .inner_margin(Margin::same(20.0)),
-      )
+      .frame(Frame::default().fill(tab_bg_fill).inner_margin(Margin::same(20.0)))
       .show(ctx, |ui| {
         ui.horizontal_top(|ui| {
           ui.selectable_value(
