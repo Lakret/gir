@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mark {
   Cross,
   Circle,
@@ -9,6 +9,20 @@ pub struct Game {
   state: [Option<Mark>; 9],
   circle_turn: bool,
 }
+
+const LINES: [[usize; 3]; 8] = [
+  // rows
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  // columns
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  // diagonals
+  [0, 4, 8],
+  [2, 4, 6],
+];
 
 impl Game {
   pub fn is_cross_turn(&self) -> bool {
@@ -29,14 +43,33 @@ impl Game {
     };
 
     self.state[pos] = Some(mark);
+    self.circle_turn = !self.circle_turn;
   }
 
-  pub fn next_moves(&self) -> impl Iterator<Item = Game> {
-    todo!();
-    vec![].into_iter()
+  pub fn next_moves(&self) -> Vec<Game> {
+    let mut moves = vec![];
+
+    for pos in 0..9 {
+      if self.state[pos].is_none() {
+        let mut new_game = self.clone();
+        new_game.do_move(pos);
+
+        moves.push(new_game);
+      }
+    }
+
+    moves
   }
 
-  pub fn is_won(&self) -> bool {
-    todo!()
+  pub fn is_won(&self) -> Option<Mark> {
+    for line in LINES {
+      if let Some(mark) = self.state[line[0]] {
+        if self.state[line[1]] == Some(mark) && self.state[line[2]] == Some(mark) {
+          return Some(mark);
+        }
+      }
+    }
+
+    None
   }
 }
