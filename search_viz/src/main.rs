@@ -46,48 +46,6 @@ fn main() {
   });
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct UserInput {
-  fav_number: String,
-  levels: u32,
-  start_x: String,
-  start_y: String,
-  goal_x: String,
-  goal_y: String,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Validated {
-  fav_number: u32,
-  levels: u32,
-  start: Pos,
-  goal: Pos,
-}
-
-impl UserInput {
-  fn validate(&self) -> Result<Validated, Box<dyn Error>> {
-    let fav_number = self
-      .fav_number
-      .parse::<u32>()
-      .map_err(|err| format!("Incorrect value for Favorite Number: {}", err.to_string()))?;
-    let start = Pos {
-      x: self.start_x.parse::<u32>().map_err(|err| err.to_string())?,
-      y: self.start_y.parse::<u32>().map_err(|err| err.to_string())?,
-    };
-    let goal = Pos {
-      x: self.goal_x.parse::<u32>().map_err(|err| err.to_string())?,
-      y: self.goal_y.parse::<u32>().map_err(|err| err.to_string())?,
-    };
-
-    Ok(Validated {
-      fav_number,
-      levels: self.levels,
-      start,
-      goal,
-    })
-  }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Tabs {
   BFS,
@@ -97,42 +55,15 @@ enum Tabs {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemplateApp {
   tab: Tabs,
-  // BFS
-  user_input: UserInput,
-  validated: Validated,
-  path: Vec<Pos>,
-  explored: HashMap<u32, Vec<Pos>>,
-  time: Instant,
-  time_tick: u32,
-  animate_bfs: bool,
-  show_path: bool,
+  bfs_state: bfs_ui::State,
 }
 
 impl Default for TemplateApp {
   fn default() -> Self {
-    let user_input = UserInput {
-      fav_number: "1350".to_string(),
-      levels: 50,
-      start_x: "1".to_string(),
-      start_y: "1".to_string(),
-      goal_x: "31".to_string(),
-      goal_y: "39".to_string(),
-    };
-    let validated = user_input.validate().unwrap();
-    let (path, explored) =
-      path_and_explored_by_generation_for_animation(validated.fav_number, validated.start, validated.goal);
-
-    Self {
+    TemplateApp {
       // TODO: return it to be the BFS default
       tab: Tabs::DFS,
-      user_input,
-      validated,
-      path,
-      explored,
-      time: Instant::now(),
-      time_tick: 0,
-      animate_bfs: true,
-      show_path: true,
+      bfs_state: bfs_ui::State::default(),
     }
   }
 }
@@ -189,7 +120,7 @@ impl eframe::App for TemplateApp {
         });
 
         if self.tab == Tabs::BFS {
-          bfs_ui::ui(self, ui);
+          self.bfs_state.ui(ui);
         } else {
           dfs_ui::ui(self, ui);
         }
