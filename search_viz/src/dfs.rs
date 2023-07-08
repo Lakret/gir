@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mark {
   Cross,
@@ -8,6 +10,24 @@ pub enum Mark {
 pub struct Game {
   state: [Option<Mark>; 9],
   circle_turn: bool,
+}
+
+impl Display for Game {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    for row in 0..3 {
+      for col in 0..3 {
+        let ch = match self.mark_at(row, col) {
+          None => "口",
+          Some(Mark::Cross) => "Ｘ",
+          Some(Mark::Circle) => "⚪",
+        };
+        write!(f, "{} ", ch)?;
+      }
+      writeln!(f)?;
+    }
+
+    Ok(())
+  }
 }
 
 const LINES: [[usize; 3]; 8] = [
@@ -118,8 +138,15 @@ fn row_col_to_pos(row: usize, col: usize) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+  use super::*;
+
   #[test]
   fn next_moves_test() {
     // TODO: check next moves
+    let mut game = Game::default();
+    // cross in the center
+    game.do_move_row_col(1, 1);
+    game.do_move_row_col(0, 0);
+    println!("{}", game);
   }
 }
