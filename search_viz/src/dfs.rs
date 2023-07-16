@@ -126,6 +126,7 @@ impl Game {
   }
 
   // TODO: BFS is much better here, because we can adjust score based on the depth of a level directly
+  // thus => switch to minimax
   pub fn score_next_moves(&self, player_mark: Mark) -> HashMap<usize, f32> {
     let mut scores = HashMap::new();
     let mut is_first_turn = true;
