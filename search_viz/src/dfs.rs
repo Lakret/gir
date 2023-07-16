@@ -1,12 +1,15 @@
-use std::fmt::Display;
+use std::{
+  collections::{HashMap, HashSet},
+  fmt::Display,
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Mark {
   Cross,
   Circle,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Game {
   state: [Option<Mark>; 9],
   circle_turn: bool,
@@ -87,7 +90,7 @@ impl Game {
     self.circle_turn = !self.circle_turn;
   }
 
-  pub fn next_moves(&self) -> Vec<Game> {
+  pub fn next_moves_with_pos(&self) -> Vec<(Game, usize)> {
     let mut moves = vec![];
 
     for pos in 0..9 {
@@ -95,7 +98,7 @@ impl Game {
         let mut new_game = self.clone();
         new_game.do_move(pos);
 
-        moves.push(new_game);
+        moves.push((new_game, pos));
       }
     }
 
@@ -104,6 +107,10 @@ impl Game {
 
   pub fn is_won(&self) -> bool {
     self.winning_mark().is_some()
+  }
+
+  pub fn is_draw(&self) -> bool {
+    self.state.iter().all(|cell| cell.is_some()) && !self.is_won()
   }
 
   pub fn winning_mark(&self) -> Option<Mark> {
@@ -118,11 +125,54 @@ impl Game {
     None
   }
 
-  // computer always plays as circles
-  pub fn select_next_move(&self) -> Option<usize> {
-    // TODO: run dfs and figure out which turn to take
-    todo!();
-    None
+  pub fn score_next_moves(&self, player_mark: Mark) -> HashMap<usize, f32> {
+    let mut scores = HashMap::new();
+    let mut is_first_turn = true;
+
+    let mut stack = vec![(*self, 0, 1)];
+    let mut seen = HashSet::new();
+
+    while let Some((game, first_turn_pos, depth)) = stack.pop() {
+      if !seen.contains(&game) {
+        seen.insert(game);
+
+        for (next_move_game, pos) in game.next_moves_with_pos() {
+          // if it's the first turn the player makes on this branch, record the position for scoring;
+          // if it's deeper in the tree than the first turn, we just preserve the first turn position
+          let first_turn_pos = if is_first_turn { pos } else { first_turn_pos };
+
+          match next_move_game.winning_mark() {
+            None => stack.push((next_move_game, first_turn_pos, depth + 1)),
+            Some(next_game_win_mark) => {
+              if next_game_win_mark == player_mark {
+                scores
+                  .entry(first_turn_pos)
+                  .and_modify(|score| *score += 1.0 * (1.0 / depth as f32))
+                  .or_insert(1.0);
+              } else {
+                scores
+                  .entry(first_turn_pos)
+                  .and_modify(|score| *score -= 1.0 * (1.0 / depth as f32))
+                  .or_insert(-1.0);
+              }
+            }
+          }
+        }
+
+        is_first_turn = false;
+      }
+    }
+
+    scores
+  }
+
+  pub fn select_next_move(&self, mark: Mark) -> Option<usize> {
+    let scores = self.score_next_moves(mark);
+    scores
+      .iter()
+      // TODO: unwrap
+      .max_by(|(_pos1, score1), (_pos2, score2)| score1.partial_cmp(score2).unwrap())
+      .map(|(pos, _score)| *pos)
   }
 }
 
@@ -141,12 +191,26 @@ mod tests {
   use super::*;
 
   #[test]
-  fn next_moves_test() {
-    // TODO: check next moves
+  fn select_next_moves_test() {
     let mut game = Game::default();
     // cross in the center
     game.do_move_row_col(1, 1);
+    println!("{}", game);
+
+    let scores = game.score_next_moves(Mark::Circle);
+    dbg!(scores);
+
+    let pos = game.select_next_move(Mark::Circle);
+    game.do_move(pos.unwrap());
+    println!("{}", game);
+
     game.do_move_row_col(0, 0);
+    println!("{}", game);
+
+    let scores = game.score_next_moves(Mark::Circle);
+    dbg!(scores);
+    let pos = game.select_next_move(Mark::Circle);
+    game.do_move(pos.unwrap());
     println!("{}", game);
   }
 }
