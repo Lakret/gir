@@ -9,6 +9,15 @@ pub enum Mark {
   Circle,
 }
 
+impl Mark {
+  fn opponent(self) -> Mark {
+    match self {
+      Mark::Cross => Mark::Circle,
+      Mark::Circle => Mark::Cross,
+    }
+  }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Game {
   state: [Option<Mark>; 9],
@@ -125,8 +134,36 @@ impl Game {
     None
   }
 
-  // TODO: BFS is much better here, because we can adjust score based on the depth of a level directly
-  // thus => switch to minimax
+  // TODO: optional max_depth: usize
+  pub fn minimax(&self, maximizing_player: Mark) -> f64 {
+    if let Some(winner) = self.winning_mark() {
+      if winner == maximizing_player {
+        return 1.0;
+      } else {
+        return -1.0;
+      }
+    };
+
+    if self.is_circle_turn() && maximizing_player == Mark::Circle
+      || self.is_cross_turn() && maximizing_player == Mark::Cross
+    {
+      // maximizing player
+      let mut value = -f64::NEG_INFINITY;
+      for (next_move, _pos) in self.next_moves_with_pos() {
+        value = f64::max(value, next_move.minimax(maximizing_player.opponent()));
+      }
+      return value;
+    } else {
+      // minimizing player
+      let mut value = f64::INFINITY;
+      for (next_move, _pos) in self.next_moves_with_pos() {
+        value = f64::min(value, next_move.minimax(maximizing_player.opponent()));
+      }
+      return value;
+    }
+  }
+
+  // TODO: delete
   pub fn score_next_moves(&self, player_mark: Mark) -> HashMap<usize, f32> {
     let mut scores = HashMap::new();
     let mut is_first_turn = true;
@@ -212,6 +249,9 @@ mod tests {
 
     let scores = game.score_next_moves(Mark::Circle);
     dbg!(scores);
+
+    dbg!(game.minimax(Mark::Circle));
+
     let pos = game.select_next_move(Mark::Circle);
     game.do_move(pos.unwrap());
     println!("{}", game);
