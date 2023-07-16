@@ -125,6 +125,7 @@ impl Game {
     None
   }
 
+  // TODO: BFS is much better here, because we can adjust score based on the depth of a level directly
   pub fn score_next_moves(&self, player_mark: Mark) -> HashMap<usize, f32> {
     let mut scores = HashMap::new();
     let mut is_first_turn = true;
@@ -145,14 +146,15 @@ impl Game {
             None => stack.push((next_move_game, first_turn_pos, depth + 1)),
             Some(next_game_win_mark) => {
               if next_game_win_mark == player_mark {
+                // TODO: make depth cliff more profound: neg inf or something for the depth==2 lose
                 scores
                   .entry(first_turn_pos)
-                  .and_modify(|score| *score += 1.0 * (1.0 / depth as f32))
+                  .and_modify(|score| *score += 1.0 * (1.0 / (depth as f32 * 10.0)))
                   .or_insert(1.0);
               } else {
                 scores
                   .entry(first_turn_pos)
-                  .and_modify(|score| *score -= 1.0 * (1.0 / depth as f32))
+                  .and_modify(|score| *score -= 1.0 * (1.0 / (depth as f32 * 10.0)))
                   .or_insert(-1.0);
               }
             }
