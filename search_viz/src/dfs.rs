@@ -134,85 +134,43 @@ impl Game {
     None
   }
 
-  // TODO: optional max_depth: usize
-  pub fn minimax(&self, maximizing_player: Mark) -> f64 {
-    if let Some(winner) = self.winning_mark() {
-      if winner == maximizing_player {
-        return 1.0;
+  pub fn select_next_move(&self) -> Option<usize> {
+    self
+      .next_moves_with_pos()
+      .into_iter()
+      .map(|(game, pos)| (pos, game.minimax(false, 0)))
+      .max_by_key(|(_pos, score)| *score)
+      .map(|(best_pos, _best_score)| best_pos)
+  }
+
+  pub fn minimax(&self, is_maximizing: bool, depth: i32) -> i32 {
+    if self.is_won() {
+      if is_maximizing {
+        return -10 + depth;
       } else {
-        return -1.0;
+        return 10 - depth;
       }
     };
 
-    if self.is_circle_turn() && maximizing_player == Mark::Circle
-      || self.is_cross_turn() && maximizing_player == Mark::Cross
-    {
+    if self.is_draw() {
+      return 0;
+    }
+
+    if is_maximizing {
       // maximizing player
-      let mut value = -f64::NEG_INFINITY;
+      let mut best_score = i32::MIN;
       for (next_move, _pos) in self.next_moves_with_pos() {
-        value = f64::max(value, next_move.minimax(maximizing_player.opponent()));
+        best_score = best_score.max(next_move.minimax(false, depth + 1));
       }
-      return value;
+      return best_score;
     } else {
       // minimizing player
-      let mut value = f64::INFINITY;
+      let mut best_score = i32::MAX;
       for (next_move, _pos) in self.next_moves_with_pos() {
-        value = f64::min(value, next_move.minimax(maximizing_player.opponent()));
+        best_score = best_score.min(next_move.minimax(true, depth + 1));
       }
-      return value;
+      return best_score;
     }
-  }
-
-  // TODO: delete
-  pub fn score_next_moves(&self, player_mark: Mark) -> HashMap<usize, f32> {
-    let mut scores = HashMap::new();
-    let mut is_first_turn = true;
-
-    let mut stack = vec![(*self, 0, 1)];
-    let mut seen = HashSet::new();
-
-    while let Some((game, first_turn_pos, depth)) = stack.pop() {
-      if !seen.contains(&game) {
-        seen.insert(game);
-
-        for (next_move_game, pos) in game.next_moves_with_pos() {
-          // if it's the first turn the player makes on this branch, record the position for scoring;
-          // if it's deeper in the tree than the first turn, we just preserve the first turn position
-          let first_turn_pos = if is_first_turn { pos } else { first_turn_pos };
-
-          match next_move_game.winning_mark() {
-            None => stack.push((next_move_game, first_turn_pos, depth + 1)),
-            Some(next_game_win_mark) => {
-              if next_game_win_mark == player_mark {
-                // TODO: make depth cliff more profound: neg inf or something for the depth==2 lose
-                scores
-                  .entry(first_turn_pos)
-                  .and_modify(|score| *score += 1.0 * (1.0 / (depth as f32 * 10.0)))
-                  .or_insert(1.0);
-              } else {
-                scores
-                  .entry(first_turn_pos)
-                  .and_modify(|score| *score -= 1.0 * (1.0 / (depth as f32 * 10.0)))
-                  .or_insert(-1.0);
-              }
-            }
-          }
-        }
-
-        is_first_turn = false;
-      }
-    }
-
-    scores
-  }
-
-  pub fn select_next_move(&self, mark: Mark) -> Option<usize> {
-    let scores = self.score_next_moves(mark);
-    scores
-      .iter()
-      // TODO: unwrap
-      .max_by(|(_pos1, score1), (_pos2, score2)| score1.partial_cmp(score2).unwrap())
-      .map(|(pos, _score)| *pos)
   }
 }
 
@@ -237,22 +195,28 @@ mod tests {
     game.do_move_row_col(1, 1);
     println!("{}", game);
 
-    let scores = game.score_next_moves(Mark::Circle);
-    dbg!(scores);
-
-    let pos = game.select_next_move(Mark::Circle);
+    let pos = game.select_next_move();
     game.do_move(pos.unwrap());
     println!("{}", game);
 
-    game.do_move_row_col(0, 0);
+    game.do_move_row_col(0, 1);
     println!("{}", game);
 
-    let scores = game.score_next_moves(Mark::Circle);
-    dbg!(scores);
+    let pos = game.select_next_move();
+    game.do_move(pos.unwrap());
+    println!("{}", game);
 
-    dbg!(game.minimax(Mark::Circle));
+    game.do_move_row_col(2, 0);
+    println!("{}", game);
 
-    let pos = game.select_next_move(Mark::Circle);
+    let pos = game.select_next_move();
+    game.do_move(pos.unwrap());
+    println!("{}", game);
+
+    game.do_move_row_col(1, 2);
+    println!("{}", game);
+
+    let pos = game.select_next_move();
     game.do_move(pos.unwrap());
     println!("{}", game);
   }
