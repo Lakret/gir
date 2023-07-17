@@ -63,15 +63,18 @@ impl State {
 
     match self.game.winning_mark() {
       None => {
-        ui.label(format!(
-          "{:?} turn.",
-          // TODO: maybe we should store Mark as the "next_turn" field in Game struct directly?
-          if self.game.is_cross_turn() {
-            Mark::Cross
-          } else {
-            Mark::Circle
-          }
-        ));
+        if self.game.is_draw() {
+          ui.label("It's a draw.")
+        } else {
+          ui.label(format!(
+            "{:?}'s turn.",
+            if self.game.is_cross_turn() {
+              Mark::Cross
+            } else {
+              Mark::Circle
+            }
+          ));
+        }
       }
       Some(winning_mark) => {
         ui.label(format!("{:?} won.", winning_mark));
