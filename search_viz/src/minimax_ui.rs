@@ -60,11 +60,12 @@ impl State {
           ui.end_row();
         }
       });
+    ui.add_space(8.0);
 
     match self.game.winning_mark() {
       None => {
         if self.game.is_draw() {
-          ui.label("It's a draw.")
+          ui.label("It's a draw.");
         } else {
           ui.label(format!(
             "{:?}'s turn.",
@@ -80,6 +81,7 @@ impl State {
         ui.label(format!("{:?} won.", winning_mark));
       }
     }
+    ui.add_space(8.0);
 
     if ui
       .add(Button::new(RichText::new("New Game").size(26.0)).fill(Color32::DARK_GREEN))
