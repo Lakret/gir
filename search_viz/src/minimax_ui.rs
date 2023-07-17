@@ -1,6 +1,6 @@
-use egui::{vec2, Button, Grid, RichText};
+use egui::{vec2, Button, Color32, Grid, RichText};
 
-use crate::dfs::{Game, Mark};
+use crate::minimax::{Game, Mark};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct State {
@@ -10,24 +10,22 @@ pub struct State {
 
 impl State {
   pub fn ui(&mut self, ui: &mut egui::Ui) {
-    ui.collapsing(
-      RichText::new("Depth-First Search Graph Algorithm Demo").heading(),
-      |ui| {
-        ui.label("This demo allows you to play tic-tac-toe against the computer.");
-        ui.label("Computer will use depth-first search to select its moves.");
-        ui.horizontal(|ui| {
-          ui.label("You can find the source code for this example ");
-          ui.hyperlink_to("here", "https://github.com/lakret/gir");
-          ui.label(".");
-        });
-      },
-    );
+    ui.collapsing(RichText::new("Minimax Algorithm Demo").heading(), |ui| {
+      ui.label("This demo allows you to play tic-tac-toe against the computer.");
+      ui.label("Computer will use minimax to select its moves.");
+      ui.horizontal(|ui| {
+        ui.label("You can find the source code for this example ");
+        ui.hyperlink_to("here", "https://github.com/lakret/gir");
+        ui.label(".");
+      });
+    });
 
     ui.horizontal(|ui| {
       ui.label("Play against:");
       ui.radio_value(&mut self.manual_mode, false, "Computer");
       ui.radio_value(&mut self.manual_mode, true, "Person");
     });
+    ui.add_space(8.0);
 
     Grid::new("game_grid")
       .num_columns(3)
@@ -49,6 +47,13 @@ impl State {
 
             if cell.clicked() && !self.game.is_occupied(row, col) && !self.game.is_won() {
               self.game.do_move_row_col(row, col);
+
+              // do computer turn if computer mode is enabled
+              if !self.manual_mode {
+                if let Some(pos) = self.game.select_next_move() {
+                  self.game.do_move(pos);
+                }
+              }
             }
           }
 
@@ -71,6 +76,13 @@ impl State {
       Some(winning_mark) => {
         ui.label(format!("{:?} won.", winning_mark));
       }
+    }
+
+    if ui
+      .add(Button::new(RichText::new("New Game").size(26.0)).fill(Color32::DARK_GREEN))
+      .clicked()
+    {
+      self.game = Game::default();
     }
   }
 }

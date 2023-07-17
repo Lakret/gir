@@ -3,8 +3,8 @@ use instant::Duration;
 
 mod bfs;
 mod bfs_ui;
-mod dfs;
-mod dfs_ui;
+mod minimax;
+mod minimax_ui;
 
 // when compiling natively
 #[cfg(not(target_arch = "wasm32"))]
@@ -46,23 +46,23 @@ fn main() {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Tabs {
   BFS,
-  DFS,
+  Minimax,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemplateApp {
   tab: Tabs,
   bfs_state: bfs_ui::State,
-  dfs_state: dfs_ui::State,
+  minimax_state: minimax_ui::State,
 }
 
 impl Default for TemplateApp {
   fn default() -> Self {
     TemplateApp {
       // TODO: return it to be the BFS default
-      tab: Tabs::DFS,
+      tab: Tabs::Minimax,
       bfs_state: bfs_ui::State::default(),
-      dfs_state: dfs_ui::State::default(),
+      minimax_state: minimax_ui::State::default(),
     }
   }
 }
@@ -115,15 +115,15 @@ impl eframe::App for TemplateApp {
           );
           ui.selectable_value(
             &mut self.tab,
-            Tabs::DFS,
-            RichText::new("Depth-First Search Example").size(26.0),
+            Tabs::Minimax,
+            RichText::new("Minimax Example").size(26.0),
           );
         });
 
         if self.tab == Tabs::BFS {
           self.bfs_state.ui(ui);
         } else {
-          self.dfs_state.ui(ui);
+          self.minimax_state.ui(ui);
         }
       });
 
